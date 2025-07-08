@@ -1,0 +1,9 @@
+pandas
+numpy==1.24.4
+scikit-learn
+sentence-transformers
+torch
+nltk
+matplotlib
+openpyxl
+flask

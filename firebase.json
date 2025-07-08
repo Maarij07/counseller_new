@@ -1,0 +1,57 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "therapyrobot-a8d2f",
+          "appId": "1:834280724593:android:790b90eb42be8ba5dc23d0",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "therapyrobot-a8d2f",
+          "appId": "1:834280724593:ios:2f974230ce08d63fdc23d0",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "therapyrobot-a8d2f",
+          "appId": "1:834280724593:ios:2f974230ce08d63fdc23d0",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "therapyrobot-a8d2f",
+          "configurations": {
+            "android": "1:834280724593:android:790b90eb42be8ba5dc23d0",
+            "ios": "1:834280724593:ios:2f974230ce08d63fdc23d0",
+            "macos": "1:834280724593:ios:2f974230ce08d63fdc23d0",
+            "web": "1:834280724593:web:07e53da653f1a720dc23d0",
+            "windows": "1:834280724593:web:991e51043fc484a2dc23d0"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Viewer</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        
+        #avatar-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        #status-overlay {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        #camera-box {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 200px;
+            height: 150px;
+            background: rgba(0,0,0,0.9);
+            border: 2px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 200;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        #camera-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        
+        #camera-status {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+            padding: 4px;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+        
+        #camera-toggle {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255,255,255,0.8);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10px;
+            cursor: pointer;
+            z-index: 201;
+        }
+        
+        #camera-toggle:hover {
+            background: rgba(255,255,255,1);
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="avatar-canvas"></canvas>
+    
+    <div id="status-overlay">Initializing...</div>
+    
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>Loading Avatar...</div>
+    </div>
+    
+    <!-- Camera Box -->
+    <div id="camera-box">
+        <video id="camera-video" autoplay muted playsinline></video>
+        <button id="camera-toggle">📷 OFF</button>
+        <div id="camera-status">Camera Disabled</div>
+    </div>
+
+    <!-- Fixed Three.js loading with correct URLs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script>
+        // Wait for scripts to load completely
+        function waitForThreeJS() {
+            return new Promise((resolve) => {
+                if (typeof THREE !== 'undefined' && typeof THREE.GLTFLoader !== 'undefined') {
+                    console.log('✅ Three.js and GLTFLoader loaded');
+                    resolve();
+                } else {
+                    console.log('⏳ Waiting for Three.js...');
+                    setTimeout(() => waitForThreeJS().then(resolve), 100);
+                }
+            });
+        }
+
+        class AccurateLipSyncEngine {
+            constructor() {
+                // NATURAL FACIAL ANIMATION SYSTEM
+                // Adds realistic eye movements, blinks, and micro-expressions
+                this.naturalAnimationState = {
+                    lastBlinkTime: 0,
+                    blinkInterval: 2000 + Math.random() * 3000, // 2-5 seconds
+                    eyeMovementTimer: 0,
+                    browExpressionTimer: 0,
+                    currentEyeDirection: { x: 0, y: 0 },
+                    targetEyeDirection: { x: 0, y: 0 },
+                    isBlinking: false,
+                    speakingIntensity: 0
+                };
+                
+                // HAND GESTURE PATTERNS
+                this.handGesturePatterns = {
+                    'greeting': {
+                        name: 'Greeting Wave',
+                        duration: 2000,
+                        description: 'Friendly wave motion for hellos and introductions'
+                    },
+                    'explaining': {
+                        name: 'Open Explanation',
+                        duration: 3000,
+                        description: 'Open palms moving up and down for explanations'
+                    },
+                    'emphasizing': {
+                        name: 'Point Emphasis',
+                        duration: 1500,
+                        description: 'Pointing gesture for emphasis and important points'
+                    },
+                    'welcoming': {
+                        name: 'Open Arms Welcome',
+                        duration: 2500,
+                        description: 'Open wide arms for welcoming and inclusive gestures'
+                    }
+                };
+                
+                // CONTEXT-BASED GESTURE TRIGGERS
+                this.gestureKeywords = {
+                    'greeting': ['hello', 'hi', 'welcome', 'good morning', 'good afternoon', 'good evening', 'nice to meet'],
+                    'explaining': ['because', 'therefore', 'let me explain', 'you see', 'for example', 'understand', 'means', 'basically'],
+                    'emphasizing': ['important', 'remember', 'focus', 'key point', 'crucial', 'must', 'definitely', 'absolutely'],
+                    'welcoming': ['come in', 'please', 'feel free', 'comfortable', 'welcome', 'open', 'together']
+                };
+                
+                // ACCURATE VISEME TO MOUTH SHAPE MAPPING
+                // Based on real facial animation standards (FACS units)
+                this.visemeMap = {
+                    // SILENT - mouth closed/rest
+                    'sil': { jawOpen: 0.0, mouthOpen: 0.0, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },
+                    
+                    // VOWELS - accurate mouth shapes
+                    'AA': { jawOpen: 0.9, mouthOpen: 0.8, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "father"
+                    'AE': { jawOpen: 0.7, mouthOpen: 0.6, mouthSmile: 0.3, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "cat"
+                    'AH': { jawOpen: 0.8, mouthOpen: 0.7, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "cut"
+                    'AO': { jawOpen: 0.7, mouthOpen: 0.6, mouthSmile: 0.0, mouthFunnel: 0.5, mouthPucker: 0.3 }, // "caught"
+                    'AW': { jawOpen: 0.6, mouthOpen: 0.5, mouthSmile: 0.0, mouthFunnel: 0.7, mouthPucker: 0.4 }, // "cow"
+                    'AY': { jawOpen: 0.5, mouthOpen: 0.4, mouthSmile: 0.6, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "eye"
+                    'EH': { jawOpen: 0.5, mouthOpen: 0.4, mouthSmile: 0.4, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "bed"
+                    'ER': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.0, mouthFunnel: 0.3, mouthPucker: 0.0 }, // "bird"
+                    'EY': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.7, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "bait"
+                    'IH': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.5, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "bit"
+                    'IY': { jawOpen: 0.2, mouthOpen: 0.1, mouthSmile: 0.8, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "beet"
+                    'OW': { jawOpen: 0.5, mouthOpen: 0.4, mouthSmile: 0.0, mouthFunnel: 0.8, mouthPucker: 0.5 }, // "boat"
+                    'OY': { jawOpen: 0.6, mouthOpen: 0.5, mouthSmile: 0.0, mouthFunnel: 0.6, mouthPucker: 0.3 }, // "boy"
+                    'UH': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.0, mouthFunnel: 0.2, mouthPucker: 0.0 }, // "book"
+                    'UW': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.9, mouthPucker: 0.6 }, // "boot"
+                    
+                    // CONSONANTS - accurate mouth shapes
+                    'B': { jawOpen: 0.0, mouthOpen: 0.0, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "ball" - lips closed
+                    'CH': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.5, mouthPucker: 0.0 }, // "chip"
+                    'D': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "dog" - tongue to teeth
+                    'DH': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "the" - tongue between teeth
+                    'F': { jawOpen: 0.2, mouthOpen: 0.1, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "fish" - teeth on lip
+                    'G': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "go" - back tongue
+                    'HH': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "house" - open
+                    'JH': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.0, mouthFunnel: 0.3, mouthPucker: 0.0 }, // "judge"
+                    'K': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "cat" - back tongue
+                    'L': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.2, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "love" - tongue up
+                    'M': { jawOpen: 0.0, mouthOpen: 0.0, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "mom" - lips closed
+                    'N': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "no" - tongue up
+                    'NG': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "sing" - back tongue
+                    'P': { jawOpen: 0.0, mouthOpen: 0.0, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "pop" - lips closed
+                    'R': { jawOpen: 0.4, mouthOpen: 0.3, mouthSmile: 0.0, mouthFunnel: 0.4, mouthPucker: 0.0 },  // "red" - slight round
+                    'S': { jawOpen: 0.2, mouthOpen: 0.1, mouthSmile: 0.3, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "see" - slight smile
+                    'SH': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.6, mouthPucker: 0.0 }, // "show" - rounded
+                    'T': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "top" - tongue to teeth
+                    'TH': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 }, // "think" - tongue visible
+                    'V': { jawOpen: 0.2, mouthOpen: 0.1, mouthSmile: 0.0, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "voice" - teeth on lip
+                    'W': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.8, mouthPucker: 0.5 },  // "we" - very rounded
+                    'Y': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.6, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "yes" - slight smile
+                    'Z': { jawOpen: 0.2, mouthOpen: 0.1, mouthSmile: 0.3, mouthFunnel: 0.0, mouthPucker: 0.0 },  // "zoo" - slight smile
+                    'ZH': { jawOpen: 0.3, mouthOpen: 0.2, mouthSmile: 0.0, mouthFunnel: 0.6, mouthPucker: 0.0 }, // "measure" - rounded
+                };
+                
+                // COMPREHENSIVE PHONETIC DICTIONARY
+                // Real phonetic transcriptions for accurate lip sync
+                this.phoneticDictionary = {
+                    // Common words with accurate phonetic breakdown
+                    'hello': ['HH', 'AH', 'L', 'OW'],
+                    'hi': ['HH', 'AY'],
+                    'how': ['HH', 'AW'],
+                    'are': ['AA', 'R'],
+                    'you': ['Y', 'UW'],
+                    'doing': ['D', 'UW', 'IH', 'NG'],
+                    'today': ['T', 'AH', 'D', 'EY'],
+                    'good': ['G', 'UH', 'D'],
+                    'morning': ['M', 'AO', 'R', 'N', 'IH', 'NG'],
+                    'afternoon': ['AE', 'F', 'T', 'AH', 'R', 'N', 'UW', 'N'],
+                    'evening': ['IY', 'V', 'N', 'IH', 'NG'],
+                    'night': ['N', 'AY', 'T'],
+                    'yes': ['Y', 'EH', 'S'],
+                    'no': ['N', 'OW'],
+                    'okay': ['OW', 'K', 'EY'],
+                    'ok': ['OW', 'K', 'EY'],
+                    'thanks': ['TH', 'AE', 'NG', 'K', 'S'],
+                    'thank': ['TH', 'AE', 'NG', 'K'],
+                    'please': ['P', 'L', 'IY', 'Z'],
+                    'sorry': ['S', 'AO', 'R', 'IY'],
+                    'excuse': ['IH', 'K', 'S', 'K', 'Y', 'UW', 'Z'],
+                    'me': ['M', 'IY'],
+                    'my': ['M', 'AY'],
+                    'mine': ['M', 'AY', 'N'],
+                    'your': ['Y', 'AO', 'R'],
+                    'yours': ['Y', 'AO', 'R', 'Z'],
+                    'his': ['HH', 'IH', 'Z'],
+                    'her': ['HH', 'ER'],
+                    'hers': ['HH', 'ER', 'Z'],
+                    'our': ['AW', 'R'],
+                    'ours': ['AW', 'R', 'Z'],
+                    'their': ['DH', 'EH', 'R'],
+                    'theirs': ['DH', 'EH', 'R', 'Z'],
+                    'what': ['W', 'AH', 'T'],
+                    'when': ['W', 'EH', 'N'],
+                    'where': ['W', 'EH', 'R'],
+                    'why': ['W', 'AY'],
+                    'who': ['HH', 'UW'],
+                    'which': ['W', 'IH', 'CH'],
+                    'can': ['K', 'AE', 'N'],
+                    'could': ['K', 'UH', 'D'],
+                    'would': ['W', 'UH', 'D'],
+                    'should': ['SH', 'UH', 'D'],
+                    'will': ['W', 'IH', 'L'],
+                    'might': ['M', 'AY', 'T'],
+                    'may': ['M', 'EY'],
+                    'must': ['M', 'AH', 'S', 'T'],
+                    'need': ['N', 'IY', 'D'],
+                    'want': ['W', 'AO', 'N', 'T'],
+                    'like': ['L', 'AY', 'K'],
+                    'love': ['L', 'AH', 'V'],
+                    'hate': ['HH', 'EY', 'T'],
+                    'see': ['S', 'IY'],
+                    'hear': ['HH', 'IH', 'R'],
+                    'feel': ['F', 'IY', 'L'],
+                    'think': ['TH', 'IH', 'NG', 'K'],
+                    'know': ['N', 'OW'],
+                    'understand': ['AH', 'N', 'D', 'ER', 'S', 'T', 'AE', 'N', 'D'],
+                    'believe': ['B', 'IH', 'L', 'IY', 'V'],
+                    'remember': ['R', 'IH', 'M', 'EH', 'M', 'B', 'ER'],
+                    'forget': ['F', 'ER', 'G', 'EH', 'T'],
+                    'learn': ['L', 'ER', 'N'],
+                    'teach': ['T', 'IY', 'CH'],
+                    'help': ['HH', 'EH', 'L', 'P'],
+                    'work': ['W', 'ER', 'K'],
+                    'play': ['P', 'L', 'EY'],
+                    'go': ['G', 'OW'],
+                    'come': ['K', 'AH', 'M'],
+                    'stay': ['S', 'T', 'EY'],
+                    'leave': ['L', 'IY', 'V'],
+                    'arrive': ['AH', 'R', 'AY', 'V'],
+                    'return': ['R', 'IH', 'T', 'ER', 'N'],
+                    'stop': ['S', 'T', 'AA', 'P'],
+                    'start': ['S', 'T', 'AA', 'R', 'T'],
+                    'begin': ['B', 'IH', 'G', 'IH', 'N'],
+                    'end': ['EH', 'N', 'D'],
+                    'finish': ['F', 'IH', 'N', 'IH', 'SH'],
+                    'continue': ['K', 'AH', 'N', 'T', 'IH', 'N', 'Y', 'UW'],
+                    'wait': ['W', 'EY', 'T'],
+                    'hurry': ['HH', 'ER', 'IY'],
+                    'slow': ['S', 'L', 'OW'],
+                    'fast': ['F', 'AE', 'S', 'T'],
+                    'quick': ['K', 'W', 'IH', 'K'],
+                    'big': ['B', 'IH', 'G'],
+                    'small': ['S', 'M', 'AO', 'L'],
+                    'large': ['L', 'AA', 'R', 'JH'],
+                    'tiny': ['T', 'AY', 'N', 'IY'],
+                    'huge': ['HH', 'Y', 'UW', 'JH'],
+                    'new': ['N', 'UW'],
+                    'old': ['OW', 'L', 'D'],
+                    'young': ['Y', 'AH', 'NG'],
+                    'fresh': ['F', 'R', 'EH', 'SH'],
+                    'hot': ['HH', 'AA', 'T'],
+                    'cold': ['K', 'OW', 'L', 'D'],
+                    'warm': ['W', 'AO', 'R', 'M'],
+                    'cool': ['K', 'UW', 'L'],
+                    'nice': ['N', 'AY', 'S'],
+                    'great': ['G', 'R', 'EY', 'T'],
+                    'amazing': ['AH', 'M', 'EY', 'Z', 'IH', 'NG'],
+                    'wonderful': ['W', 'AH', 'N', 'D', 'ER', 'F', 'AH', 'L'],
+                    'terrible': ['T', 'EH', 'R', 'AH', 'B', 'AH', 'L'],
+                    'bad': ['B', 'AE', 'D'],
+                    'awful': ['AO', 'F', 'AH', 'L'],
+                    'perfect': ['P', 'ER', 'F', 'IH', 'K', 'T'],
+                    'excellent': ['EH', 'K', 'S', 'AH', 'L', 'AH', 'N', 'T'],
+                    'fine': ['F', 'AY', 'N'],
+                    'well': ['W', 'EH', 'L'],
+                    'better': ['B', 'EH', 'T', 'ER'],
+                    'best': ['B', 'EH', 'S', 'T'],
+                    'worse': ['W', 'ER', 'S'],
+                    'worst': ['W', 'ER', 'S', 'T'],
+                    'happy': ['HH', 'AE', 'P', 'IY'],
+                    'sad': ['S', 'AE', 'D'],
+                    'angry': ['AE', 'NG', 'G', 'R', 'IY'],
+                    'excited': ['IH', 'K', 'S', 'AY', 'T', 'IH', 'D'],
+                    'tired': ['T', 'AY', 'ER', 'D'],
+                    'hungry': ['HH', 'AH', 'NG', 'G', 'R', 'IY'],
+                    'thirsty': ['TH', 'ER', 'S', 'T', 'IY'],
+                    'sleepy': ['S', 'L', 'IY', 'P', 'IY'],
+                    'awake': ['AH', 'W', 'EY', 'K'],
+                    'alive': ['AH', 'L', 'AY', 'V'],
+                    'ready': ['R', 'EH', 'D', 'IY'],
+                    'busy': ['B', 'IH', 'Z', 'IY'],
+                    'free': ['F', 'R', 'IY'],
+                    'open': ['OW', 'P', 'AH', 'N'],
+                    'close': ['K', 'L', 'OW', 'S'],
+                    'closed': ['K', 'L', 'OW', 'Z', 'D'],
+                    'lock': ['L', 'AA', 'K'],
+                    'unlock': ['AH', 'N', 'L', 'AA', 'K'],
+                    'turn': ['T', 'ER', 'N'],
+                    'push': ['P', 'UH', 'SH'],
+                    'pull': ['P', 'UH', 'L'],
+                    'lift': ['L', 'IH', 'F', 'T'],
+                    'drop': ['D', 'R', 'AA', 'P'],
+                    'pick': ['P', 'IH', 'K'],
+                    'choose': ['CH', 'UW', 'Z'],
+                    'take': ['T', 'EY', 'K'],
+                    'give': ['G', 'IH', 'V'],
+                    'get': ['G', 'EH', 'T'],
+                    'put': ['P', 'UH', 'T'],
+                    'place': ['P', 'L', 'EY', 'S'],
+                    'move': ['M', 'UW', 'V'],
+                    'carry': ['K', 'AE', 'R', 'IY'],
+                    'bring': ['B', 'R', 'IH', 'NG'],
+                    'send': ['S', 'EH', 'N', 'D'],
+                    'receive': ['R', 'IH', 'S', 'IY', 'V'],
+                    'buy': ['B', 'AY'],
+                    'sell': ['S', 'EH', 'L'],
+                    'pay': ['P', 'EY'],
+                    'cost': ['K', 'AO', 'S', 'T'],
+                    'price': ['P', 'R', 'AY', 'S'],
+                    'money': ['M', 'AH', 'N', 'IY'],
+                    'dollar': ['D', 'AA', 'L', 'ER'],
+                    'cent': ['S', 'EH', 'N', 'T'],
+                    'time': ['T', 'AY', 'M'],
+                    'hour': ['AW', 'ER'],
+                    'minute': ['M', 'IH', 'N', 'AH', 'T'],
+                    'second': ['S', 'EH', 'K', 'AH', 'N', 'D'],
+                    'day': ['D', 'EY'],
+                    'week': ['W', 'IY', 'K'],
+                    'month': ['M', 'AH', 'N', 'TH'],
+                    'year': ['Y', 'IH', 'R'],
+                    'monday': ['M', 'AH', 'N', 'D', 'EY'],
+                    'tuesday': ['T', 'UW', 'Z', 'D', 'EY'],
+                    'wednesday': ['W', 'EH', 'N', 'Z', 'D', 'EY'],
+                    'thursday': ['TH', 'ER', 'Z', 'D', 'EY'],
+                    'friday': ['F', 'R', 'AY', 'D', 'EY'],
+                    'saturday': ['S', 'AE', 'T', 'ER', 'D', 'EY'],
+                    'sunday': ['S', 'AH', 'N', 'D', 'EY'],
+                    'january': ['JH', 'AE', 'N', 'Y', 'UW', 'EH', 'R', 'IY'],
+                    'february': ['F', 'EH', 'B', 'R', 'UW', 'EH', 'R', 'IY'],
+                    'march': ['M', 'AA', 'R', 'CH'],
+                    'april': ['EY', 'P', 'R', 'AH', 'L'],
+                    'may': ['M', 'EY'],
+                    'june': ['JH', 'UW', 'N'],
+                    'july': ['JH', 'UH', 'L', 'AY'],
+                    'august': ['AO', 'G', 'AH', 'S', 'T'],
+                    'september': ['S', 'EH', 'P', 'T', 'EH', 'M', 'B', 'ER'],
+                    'october': ['AA', 'K', 'T', 'OW', 'B', 'ER'],
+                    'november': ['N', 'OW', 'V', 'EH', 'M', 'B', 'ER'],
+                    'december': ['D', 'IH', 'S', 'EH', 'M', 'B', 'ER'],
+                    'spring': ['S', 'P', 'R', 'IH', 'NG'],
+                    'summer': ['S', 'AH', 'M', 'ER'],
+                    'fall': ['F', 'AO', 'L'],
+                    'autumn': ['AO', 'T', 'AH', 'M'],
+                    'winter': ['W', 'IH', 'N', 'T', 'ER'],
+                    'weather': ['W', 'EH', 'DH', 'ER'],
+                    'rain': ['R', 'EY', 'N'],
+                    'snow': ['S', 'N', 'OW'],
+                    'sun': ['S', 'AH', 'N'],
+                    'cloud': ['K', 'L', 'AW', 'D'],
+                    'wind': ['W', 'IH', 'N', 'D'],
+                    'storm': ['S', 'T', 'AO', 'R', 'M'],
+                    'house': ['HH', 'AW', 'S'],
+                    'home': ['HH', 'OW', 'M'],
+                    'room': ['R', 'UW', 'M'],
+                    'door': ['D', 'AO', 'R'],
+                    'window': ['W', 'IH', 'N', 'D', 'OW'],
+                    'wall': ['W', 'AO', 'L'],
+                    'floor': ['F', 'L', 'AO', 'R'],
+                    'ceiling': ['S', 'IY', 'L', 'IH', 'NG'],
+                    'roof': ['R', 'UW', 'F'],
+                    'kitchen': ['K', 'IH', 'CH', 'AH', 'N'],
+                    'bedroom': ['B', 'EH', 'D', 'R', 'UW', 'M'],
+                    'bathroom': ['B', 'AE', 'TH', 'R', 'UW', 'M'],
+                    'living': ['L', 'IH', 'V', 'IH', 'NG'],
+                    'dining': ['D', 'AY', 'N', 'IH', 'NG'],
+                    'table': ['T', 'EY', 'B', 'AH', 'L'],
+                    'chair': ['CH', 'EH', 'R'],
+                    'bed': ['B', 'EH', 'D'],
+                    'sofa': ['S', 'OW', 'F', 'AH'],
+                    'couch': ['K', 'AW', 'CH'],
+                    'television': ['T', 'EH', 'L', 'AH', 'V', 'IH', 'ZH', 'AH', 'N'],
+                    'tv': ['T', 'IY', 'V', 'IY'],
+                    'computer': ['K', 'AH', 'M', 'P', 'Y', 'UW', 'T', 'ER'],
+                    'phone': ['F', 'OW', 'N'],
+                    'car': ['K', 'AA', 'R'],
+                    'bus': ['B', 'AH', 'S'],
+                    'train': ['T', 'R', 'EY', 'N'],
+                    'plane': ['P', 'L', 'EY', 'N'],
+                    'airplane': ['EH', 'R', 'P', 'L', 'EY', 'N'],
+                    'boat': ['B', 'OW', 'T'],
+                    'ship': ['SH', 'IH', 'P'],
+                    'bike': ['B', 'AY', 'K'],
+                    'bicycle': ['B', 'AY', 'S', 'IH', 'K', 'AH', 'L'],
+                    'walk': ['W', 'AO', 'K'],
+                    'run': ['R', 'AH', 'N'],
+                    'drive': ['D', 'R', 'AY', 'V'],
+                    'fly': ['F', 'L', 'AY'],
+                    'swim': ['S', 'W', 'IH', 'M'],
+                    'dance': ['D', 'AE', 'N', 'S'],
+                    'sing': ['S', 'IH', 'NG'],
+                    'read': ['R', 'IY', 'D'],
+                    'write': ['R', 'AY', 'T'],
+                    'listen': ['L', 'IH', 'S', 'AH', 'N'],
+                    'watch': ['W', 'AA', 'CH'],
+                    'look': ['L', 'UH', 'K'],
+                    'speak': ['S', 'P', 'IY', 'K'],
+                    'talk': ['T', 'AO', 'K'],
+                    'say': ['S', 'EY'],
+                    'tell': ['T', 'EH', 'L'],
+                    'ask': ['AE', 'S', 'K'],
+                    'answer': ['AE', 'N', 'S', 'ER'],
+                    'question': ['K', 'W', 'EH', 'S', 'CH', 'AH', 'N'],
+                    'problem': ['P', 'R', 'AA', 'B', 'L', 'AH', 'M'],
+                    'solution': ['S', 'AH', 'L', 'UW', 'SH', 'AH', 'N'],
+                    'idea': ['AY', 'D', 'IY', 'AH'],
+                    'thought': ['TH', 'AO', 'T'],
+                    'mind': ['M', 'AY', 'N', 'D'],
+                    'brain': ['B', 'R', 'EY', 'N'],
+                    'head': ['HH', 'EH', 'D'],
+                    'face': ['F', 'EY', 'S'],
+                    'eye': ['AY'],
+                    'eyes': ['AY', 'Z'],
+                    'nose': ['N', 'OW', 'Z'],
+                    'mouth': ['M', 'AW', 'TH'],
+                    'tooth': ['T', 'UW', 'TH'],
+                    'teeth': ['T', 'IY', 'TH'],
+                    'tongue': ['T', 'AH', 'NG'],
+                    'lip': ['L', 'IH', 'P'],
+                    'lips': ['L', 'IH', 'P', 'S'],
+                    'ear': ['IH', 'R'],
+                    'ears': ['IH', 'R', 'Z'],
+                    'hair': ['HH', 'EH', 'R'],
+                    'neck': ['N', 'EH', 'K'],
+                    'shoulder': ['SH', 'OW', 'L', 'D', 'ER'],
+                    'arm': ['AA', 'R', 'M'],
+                    'hand': ['HH', 'AE', 'N', 'D'],
+                    'finger': ['F', 'IH', 'NG', 'G', 'ER'],
+                    'thumb': ['TH', 'AH', 'M'],
+                    'leg': ['L', 'EH', 'G'],
+                    'foot': ['F', 'UH', 'T'],
+                    'feet': ['F', 'IY', 'T'],
+                    'toe': ['T', 'OW'],
+                    'toes': ['T', 'OW', 'Z'],
+                    'body': ['B', 'AA', 'D', 'IY'],
+                    'heart': ['HH', 'AA', 'R', 'T'],
+                    'back': ['B', 'AE', 'K'],
+                    'front': ['F', 'R', 'AH', 'N', 'T'],
+                    'side': ['S', 'AY', 'D'],
+                    'top': ['T', 'AA', 'P'],
+                    'bottom': ['B', 'AA', 'T', 'AH', 'M'],
+                    'up': ['AH', 'P'],
+                    'down': ['D', 'AW', 'N'],
+                    'left': ['L', 'EH', 'F', 'T'],
+                    'right': ['R', 'AY', 'T'],
+                    'center': ['S', 'EH', 'N', 'T', 'ER'],
+                    'middle': ['M', 'IH', 'D', 'AH', 'L'],
+                    'inside': ['IH', 'N', 'S', 'AY', 'D'],
+                    'outside': ['AW', 'T', 'S', 'AY', 'D'],
+                    'above': ['AH', 'B', 'AH', 'V'],
+                    'below': ['B', 'IH', 'L', 'OW'],
+                    'under': ['AH', 'N', 'D', 'ER'],
+                    'over': ['OW', 'V', 'ER'],
+                    'next': ['N', 'EH', 'K', 'S', 'T'],
+                    'before': ['B', 'IH', 'F', 'AO', 'R'],
+                    'after': ['AE', 'F', 'T', 'ER'],
+                    'first': ['F', 'ER', 'S', 'T'],
+                    'last': ['L', 'AE', 'S', 'T'],
+                    'early': ['ER', 'L', 'IY'],
+                    'late': ['L', 'EY', 'T'],
+                    'soon': ['S', 'UW', 'N'],
+                    'now': ['N', 'AW'],
+                    'then': ['DH', 'EH', 'N'],
+                    'here': ['HH', 'IH', 'R'],
+                    'there': ['DH', 'EH', 'R'],
+                    'everywhere': ['EH', 'V', 'R', 'IY', 'W', 'EH', 'R'],
+                    'somewhere': ['S', 'AH', 'M', 'W', 'EH', 'R'],
+                    'nowhere': ['N', 'OW', 'W', 'EH', 'R'],
+                    'anywhere': ['EH', 'N', 'IY', 'W', 'EH', 'R'],
+                    'always': ['AO', 'L', 'W', 'EY', 'Z'],
+                    'never': ['N', 'EH', 'V', 'ER'],
+                    'sometimes': ['S', 'AH', 'M', 'T', 'AY', 'M', 'Z'],
+                    'often': ['AO', 'F', 'AH', 'N'],
+                    'usually': ['Y', 'UW', 'ZH', 'AH', 'L', 'IY'],
+                    'rarely': ['R', 'EH', 'R', 'L', 'IY'],
+                    'maybe': ['M', 'EY', 'B', 'IY'],
+                    'perhaps': ['P', 'ER', 'HH', 'AE', 'P', 'S'],
+                    'probably': ['P', 'R', 'AA', 'B', 'AH', 'B', 'L', 'IY'],
+                    'certainly': ['S', 'ER', 'T', 'AH', 'N', 'L', 'IY'],
+                    'definitely': ['D', 'EH', 'F', 'AH', 'N', 'AH', 'T', 'L', 'IY'],
+                    'absolutely': ['AE', 'B', 'S', 'AH', 'L', 'UW', 'T', 'L', 'IY'],
+                    'really': ['R', 'IY', 'L', 'IY'],
+                    'very': ['V', 'EH', 'R', 'IY'],
+                    'quite': ['K', 'W', 'AY', 'T'],
+                    'rather': ['R', 'AE', 'DH', 'ER'],
+                    'pretty': ['P', 'R', 'IH', 'T', 'IY'],
+                    'much': ['M', 'AH', 'CH'],
+                    'many': ['M', 'EH', 'N', 'IY'],
+                    'few': ['F', 'Y', 'UW'],
+                    'little': ['L', 'IH', 'T', 'AH', 'L'],
+                    'lot': ['L', 'AA', 'T'],
+                    'more': ['M', 'AO', 'R'],
+                    'most': ['M', 'OW', 'S', 'T'],
+                    'less': ['L', 'EH', 'S'],
+                    'least': ['L', 'IY', 'S', 'T'],
+                    'all': ['AO', 'L'],
+                    'some': ['S', 'AH', 'M'],
+                    'any': ['EH', 'N', 'IY'],
+                    'none': ['N', 'AH', 'N'],
+                    'every': ['EH', 'V', 'R', 'IY'],
+                    'each': ['IY', 'CH'],
+                    'both': ['B', 'OW', 'TH'],
+                    'either': ['IY', 'DH', 'ER'],
+                    'neither': ['N', 'IY', 'DH', 'ER'],
+                    'one': ['W', 'AH', 'N'],
+                    'two': ['T', 'UW'],
+                    'three': ['TH', 'R', 'IY'],
+                    'four': ['F', 'AO', 'R'],
+                    'five': ['F', 'AY', 'V'],
+                    'six': ['S', 'IH', 'K', 'S'],
+                    'seven': ['S', 'EH', 'V', 'AH', 'N'],
+                    'eight': ['EY', 'T'],
+                    'nine': ['N', 'AY', 'N'],
+                    'ten': ['T', 'EH', 'N'],
+                    'eleven': ['IH', 'L', 'EH', 'V', 'AH', 'N'],
+                    'twelve': ['T', 'W', 'EH', 'L', 'V'],
+                    'thirteen': ['TH', 'ER', 'T', 'IY', 'N'],
+                    'fourteen': ['F', 'AO', 'R', 'T', 'IY', 'N'],
+                    'fifteen': ['F', 'IH', 'F', 'T', 'IY', 'N'],
+                    'sixteen': ['S', 'IH', 'K', 'S', 'T', 'IY', 'N'],
+                    'seventeen': ['S', 'EH', 'V', 'AH', 'N', 'T', 'IY', 'N'],
+                    'eighteen': ['EY', 'T', 'IY', 'N'],
+                    'nineteen': ['N', 'AY', 'N', 'T', 'IY', 'N'],
+                    'twenty': ['T', 'W', 'EH', 'N', 'T', 'IY'],
+                    'thirty': ['TH', 'ER', 'T', 'IY'],
+                    'forty': ['F', 'AO', 'R', 'T', 'IY'],
+                    'fifty': ['F', 'IH', 'F', 'T', 'IY'],
+                    'sixty': ['S', 'IH', 'K', 'S', 'T', 'IY'],
+                    'seventy': ['S', 'EH', 'V', 'AH', 'N', 'T', 'IY'],
+                    'eighty': ['EY', 'T', 'IY'],
+                    'ninety': ['N', 'AY', 'N', 'T', 'IY'],
+                    'hundred': ['HH', 'AH', 'N', 'D', 'R', 'AH', 'D'],
+                    'thousand': ['TH', 'AW', 'Z', 'AH', 'N', 'D'],
+                    'million': ['M', 'IH', 'L', 'Y', 'AH', 'N'],
+                    'billion': ['B', 'IH', 'L', 'Y', 'AH', 'N'],
+                    'first': ['F', 'ER', 'S', 'T'],
+                    'second': ['S', 'EH', 'K', 'AH', 'N', 'D'],
+                    'third': ['TH', 'ER', 'D'],
+                    'fourth': ['F', 'AO', 'R', 'TH'],
+                    'fifth': ['F', 'IH', 'F', 'TH'],
+                    'red': ['R', 'EH', 'D'],
+                    'orange': ['AO', 'R', 'AH', 'N', 'JH'],
+                    'yellow': ['Y', 'EH', 'L', 'OW'],
+                    'green': ['G', 'R', 'IY', 'N'],
+                    'blue': ['B', 'L', 'UW'],
+                    'purple': ['P', 'ER', 'P', 'AH', 'L'],
+                    'pink': ['P', 'IH', 'NG', 'K'],
+                    'brown': ['B', 'R', 'AW', 'N'],
+                    'black': ['B', 'L', 'AE', 'K'],
+                    'white': ['W', 'AY', 'T'],
+                    'gray': ['G', 'R', 'EY'],
+                    'grey': ['G', 'R', 'EY'],
+                    'silver': ['S', 'IH', 'L', 'V', 'ER'],
+                    'gold': ['G', 'OW', 'L', 'D'],
+                };
+                
+                // TIMING CONSTANTS (in milliseconds)
+                this.phonemeDurations = {
+                    // Vowels - longer duration
+                    'AA': 180, 'AE': 160, 'AH': 140, 'AO': 170, 'AW': 190, 'AY': 180,
+                    'EH': 150, 'ER': 160, 'EY': 170, 'IH': 140, 'IY': 160, 'OW': 180,
+                    'OY': 190, 'UH': 150, 'UW': 170,
+                    
+                    // Consonants - shorter duration
+                    'B': 60, 'CH': 90, 'D': 70, 'DH': 80, 'F': 100, 'G': 70, 'HH': 90,
+                    'JH': 90, 'K': 70, 'L': 90, 'M': 80, 'N': 80, 'NG': 90, 'P': 60,
+                    'R': 100, 'S': 110, 'SH': 120, 'T': 60, 'TH': 100, 'V': 100,
+                    'W': 80, 'Y': 70, 'Z': 110, 'ZH': 120,
+                    
+                    // Silence
+                    'sil': 150
+                };
+                
+                console.log('🎯 Accurate Lip Sync Engine initialized with', Object.keys(this.phoneticDictionary).length, 'words');
+            }
+            
+            // MAIN FUNCTION: Convert text to accurate phoneme sequence
+            textToAccuratePhonemes(text) {
+                console.log('🔍 Converting text to accurate phonemes:', text);
+                
+                const words = text.toLowerCase().replace(/[.,!?;:]/g, '').split(/\s+/).filter(word => word.length > 0);
+                const phonemeSequence = [];
+                
+                words.forEach((word, index) => {
+                    // Add pause between words (except first)
+                    if (index > 0) {
+                        phonemeSequence.push({
+                            phoneme: 'sil',
+                            duration: 100,
+                            word: '[pause]',
+                            type: 'pause'
+                        });
+                    }
+                    
+                    // Get phonemes for this word
+                    const wordPhonemes = this.getWordPhonemes(word);
+                    wordPhonemes.forEach(phoneme => {
+                        phonemeSequence.push({
+                            phoneme: phoneme,
+                            duration: this.phonemeDurations[phoneme] || 120,
+                            word: word,
+                            type: 'speech'
+                        });
+                    });
+                });
+                
+                // Add final silence
+                phonemeSequence.push({
+                    phoneme: 'sil',
+                    duration: 200,
+                    word: '[end]',
+                    type: 'pause'
+                });
+                
+                console.log('📋 Generated accurate phoneme sequence:', phonemeSequence);
+                return phonemeSequence;
+            }
+            
+            // GET PHONEMES FOR A WORD
+            getWordPhonemes(word) {
+                // First try dictionary lookup
+                if (this.phoneticDictionary[word]) {
+                    return this.phoneticDictionary[word];
+                }
+                
+                // Try common variants
+                const variants = [
+                    word + 's',  // plural
+                    word + 'ing', // present participle
+                    word + 'ed',  // past tense
+                    word.slice(0, -1), // remove last letter
+                    word.slice(0, -2), // remove last two letters
+                    word.slice(0, -3)  // remove last three letters
+                ];
+                
+                for (let variant of variants) {
+                    if (this.phoneticDictionary[variant]) {
+                        console.log(`📖 Found variant phonemes for "${word}" -> "${variant}"`);
+                        return this.phoneticDictionary[variant];
+                    }
+                }
+                
+                // Fallback: Phonetic approximation
+                console.log(`⚠️ No phonemes found for "${word}", using approximation`);
+                return this.approximatePhonemes(word);
+            }
+            
+            // PHONETIC APPROXIMATION FOR UNKNOWN WORDS
+            approximatePhonemes(word) {
+                const phonemes = [];
+                const letters = word.toLowerCase().split('');
+                
+                for (let i = 0; i < letters.length; i++) {
+                    const letter = letters[i];
+                    const nextLetter = letters[i + 1];
+                    const prevLetter = letters[i - 1];
+                    
+                    // Handle common letter combinations
+                    if (letter === 'c' && nextLetter === 'h') {
+                        phonemes.push('CH');
+                        i++; // skip next letter
+                    } else if (letter === 's' && nextLetter === 'h') {
+                        phonemes.push('SH');
+                        i++; // skip next letter
+                    } else if (letter === 't' && nextLetter === 'h') {
+                        phonemes.push('TH');
+                        i++; // skip next letter
+                    } else if (letter === 'p' && nextLetter === 'h') {
+                        phonemes.push('F');
+                        i++; // skip next letter
+                    } else if (letter === 'g' && nextLetter === 'h') {
+                        // silent gh
+                        i++; // skip next letter
+                    } else if (letter === 'n' && nextLetter === 'g') {
+                        phonemes.push('NG');
+                        i++; // skip next letter
+                    } else {
+                        // Single letter approximations
+                        const phoneme = this.letterToPhoneme(letter, nextLetter, prevLetter);
+                        if (phoneme) {
+                            phonemes.push(phoneme);
+                        }
+                    }
+                }
+                
+                return phonemes.length > 0 ? phonemes : ['AH']; // fallback to schwa
+            }
+            
+            // LETTER TO PHONEME APPROXIMATION
+            letterToPhoneme(letter, nextLetter, prevLetter) {
+                const vowels = 'aeiou';
+                const isVowel = vowels.includes(letter);
+                const nextIsVowel = nextLetter && vowels.includes(nextLetter);
+                
+                switch (letter) {
+                    // Vowels
+                    case 'a':
+                        if (nextLetter === 'r') return 'AA';
+                        if (nextLetter === 'w') return 'AW';
+                        if (nextLetter === 'y') return 'AY';
+                        return nextIsVowel ? 'EY' : 'AE';
+                    case 'e':
+                        if (nextLetter === 'r') return 'ER';
+                        if (nextLetter === 'y') return 'EY';
+                        return nextIsVowel ? 'IY' : 'EH';
+                    case 'i':
+                        if (nextLetter === 'r') return 'ER';
+                        return nextIsVowel ? 'AY' : 'IH';
+                    case 'o':
+                        if (nextLetter === 'r') return 'AO';
+                        if (nextLetter === 'w') return 'OW';
+                        if (nextLetter === 'y') return 'OY';
+                        return nextIsVowel ? 'OW' : 'AA';
+                    case 'u':
+                        if (nextLetter === 'r') return 'ER';
+                        return nextIsVowel ? 'UW' : 'AH';
+                    case 'y':
+                        return isVowel ? 'IY' : 'Y';
+                    
+                    // Consonants
+                    case 'b': return 'B';
+                    case 'c': return nextLetter === 'e' || nextLetter === 'i' || nextLetter === 'y' ? 'S' : 'K';
+                    case 'd': return 'D';
+                    case 'f': return 'F';
+                    case 'g': return nextLetter === 'e' || nextLetter === 'i' || nextLetter === 'y' ? 'JH' : 'G';
+                    case 'h': return 'HH';
+                    case 'j': return 'JH';
+                    case 'k': return 'K';
+                    case 'l': return 'L';
+                    case 'm': return 'M';
+                    case 'n': return 'N';
+                    case 'p': return 'P';
+                    case 'q': return 'K';
+                    case 'r': return 'R';
+                    case 's': return 'S';
+                    case 't': return 'T';
+                    case 'v': return 'V';
+                    case 'w': return 'W';
+                    case 'x': return 'K'; // approximation
+                    case 'z': return 'Z';
+                    
+                    default: return null;
+                }
+            }
+            
+            // GET VISEME FOR PHONEME
+            getVisemeForPhoneme(phoneme) {
+                return this.visemeMap[phoneme] || this.visemeMap['sil'];
+            }
+            
+            // NATURAL ANIMATION METHODS
+            updateNaturalAnimations(avatarViewer, deltaTime) {
+                const now = Date.now();
+                const state = this.naturalAnimationState;
+                
+                // NATURAL BLINKING SYSTEM
+                if (now - state.lastBlinkTime > state.blinkInterval && !state.isBlinking) {
+                    this.triggerNaturalBlink(avatarViewer);
+                    state.lastBlinkTime = now;
+                    state.blinkInterval = 2000 + Math.random() * 3000; // Random interval
+                }
+                
+                // NATURAL EYE MOVEMENTS
+                state.eyeMovementTimer += deltaTime;
+                if (state.eyeMovementTimer > 3000 + Math.random() * 2000) { // Every 3-5 seconds
+                    this.generateNaturalEyeMovement();
+                    state.eyeMovementTimer = 0;
+                }
+                
+                // SMOOTH EYE MOVEMENT INTERPOLATION
+                const eyeLerpSpeed = 0.02;
+                state.currentEyeDirection.x += (state.targetEyeDirection.x - state.currentEyeDirection.x) * eyeLerpSpeed;
+                state.currentEyeDirection.y += (state.targetEyeDirection.y - state.currentEyeDirection.y) * eyeLerpSpeed;
+                
+                // Apply eye movements
+                this.applyEyeMovements(avatarViewer, state.currentEyeDirection);
+                
+                // NATURAL BROW EXPRESSIONS DURING SPEECH
+                if (state.speakingIntensity > 0) {
+                    this.applyNaturalBrowExpressions(avatarViewer, state.speakingIntensity);
+                }
+                
+                // IDLE HAND MOVEMENTS (when not speaking)
+                if (state.speakingIntensity === 0 && avatarViewer.handAnimationState) {
+                    const handState = avatarViewer.handAnimationState;
+                    if (handState.currentMotion === 'idle') {
+                        avatarViewer.animateIdleGesture();
+                    }
+                }
+            }
+            
+            triggerNaturalBlink(avatarViewer) {
+                const state = this.naturalAnimationState;
+                state.isBlinking = true;
+                
+                // Blink animation
+                avatarViewer.setMorphTarget('eyeBlinkLeft', 1.0);
+                avatarViewer.setMorphTarget('eyeBlinkRight', 1.0);
+                
+                setTimeout(() => {
+                    avatarViewer.setMorphTarget('eyeBlinkLeft', 0.0);
+                    avatarViewer.setMorphTarget('eyeBlinkRight', 0.0);
+                    state.isBlinking = false;
+                }, 150); // 150ms blink duration
+            }
+            
+            generateNaturalEyeMovement() {
+                const state = this.naturalAnimationState;
+                
+                // Generate subtle, natural eye movements
+                const intensity = 0.3; // Subtle movements
+                state.targetEyeDirection.x = (Math.random() - 0.5) * 2 * intensity;
+                state.targetEyeDirection.y = (Math.random() - 0.5) * 2 * intensity;
+                
+                // Bias toward looking slightly down (natural resting position)
+                state.targetEyeDirection.y -= 0.1;
+            }
+            
+            applyEyeMovements(avatarViewer, direction) {
+                // Map direction to individual eye controls
+                const leftEyeX = Math.max(0, direction.x); // Look right
+                const rightEyeX = Math.max(0, -direction.x); // Look left
+                const upY = Math.max(0, direction.y); // Look up
+                const downY = Math.max(0, -direction.y); // Look down
+                
+                // Apply eye movements
+                avatarViewer.setMorphTarget('eyeLookInLeft', rightEyeX);
+                avatarViewer.setMorphTarget('eyeLookOutLeft', leftEyeX);
+                avatarViewer.setMorphTarget('eyeLookInRight', leftEyeX);
+                avatarViewer.setMorphTarget('eyeLookOutRight', rightEyeX);
+                
+                avatarViewer.setMorphTarget('eyeLookUpLeft', upY);
+                avatarViewer.setMorphTarget('eyeLookUpRight', upY);
+                avatarViewer.setMorphTarget('eyeLookDownLeft', downY);
+                avatarViewer.setMorphTarget('eyeLookDownRight', downY);
+            }
+            
+            applyNaturalBrowExpressions(avatarViewer, intensity) {
+                // Subtle brow movements during speech for natural expression
+                const time = Date.now() * 0.001; // Convert to seconds
+                
+                // Gentle up and down brow movements
+                const browUp = (Math.sin(time * 0.5) + 1) * 0.5 * intensity * 0.2;
+                const browInner = (Math.sin(time * 0.7) + 1) * 0.5 * intensity * 0.15;
+                
+                avatarViewer.setMorphTarget('browInnerUp', browInner);
+                avatarViewer.setMorphTarget('browOuterUpLeft', browUp);
+                avatarViewer.setMorphTarget('browOuterUpRight', browUp);
+                
+                // Add subtle cheek and nose movements for more natural expression
+                const cheekMovement = (Math.sin(time * 0.3) + 1) * 0.5 * intensity * 0.1;
+                avatarViewer.setMorphTarget('cheekSquintLeft', cheekMovement);
+                avatarViewer.setMorphTarget('cheekSquintRight', cheekMovement);
+                
+                // Subtle mouth corner movements for expressiveness
+                const mouthCorner = (Math.sin(time * 0.4) + 1) * 0.5 * intensity * 0.08;
+                avatarViewer.setMorphTarget('mouthDimpleLeft', mouthCorner);
+                avatarViewer.setMorphTarget('mouthDimpleRight', mouthCorner);
+            }
+            
+            setSpeakingIntensity(intensity) {
+                this.naturalAnimationState.speakingIntensity = intensity;
+            }
+            
+            // HAND GESTURE ANALYSIS
+            analyzeTextForGestures(text) {
+                const lowerText = text.toLowerCase();
+                const detectedGestures = [];
+                
+                // Check for gesture keywords
+                for (const [gestureType, keywords] of Object.entries(this.gestureKeywords)) {
+                    for (const keyword of keywords) {
+                        if (lowerText.includes(keyword)) {
+                            if (!detectedGestures.includes(gestureType)) {
+                                detectedGestures.push(gestureType);
+                                console.log(`🤲 Detected gesture: ${gestureType} (keyword: "${keyword}")`);
+                            }
+                        }
+                    }
+                }
+                
+                // If no specific gestures detected, choose based on sentence type
+                if (detectedGestures.length === 0) {
+                    if (lowerText.includes('?')) {
+                        detectedGestures.push('emphasizing'); // Questions need emphasis
+                    } else if (lowerText.length > 50) {
+                        detectedGestures.push('explaining'); // Long sentences are explanatory
+                    }
+                }
+                
+                return detectedGestures;
+            }
+            
+            // HAND GESTURE TIMING
+            planGestureTimings(text, phonemeSequence, detectedGestures) {
+                const gestureTimings = [];
+                const totalDuration = phonemeSequence.reduce((sum, p) => sum + p.duration, 0);
+                
+                if (detectedGestures.length > 0) {
+                    // For first dialog, always start with greeting
+                    const isFirstDialog = text.toLowerCase().includes('hello') || text.toLowerCase().includes('hi') || text.toLowerCase().includes('welcome');
+                    
+                    if (isFirstDialog && !detectedGestures.includes('greeting')) {
+                        detectedGestures.unshift('greeting');
+                    }
+                    
+                    // Space gestures throughout the speech
+                    detectedGestures.forEach((gestureType, index) => {
+                        const pattern = this.handGesturePatterns[gestureType];
+                        if (pattern) {
+                            const startTime = (totalDuration / detectedGestures.length) * index;
+                            gestureTimings.push({
+                                type: gestureType,
+                                startTime: startTime,
+                                duration: pattern.duration,
+                                pattern: pattern
+                            });
+                        }
+                    });
+                }
+                
+                console.log('🎭 Planned gesture timings:', gestureTimings);
+                return gestureTimings;
+            }
+        }
+
+        class AvatarViewer {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.avatar = null;
+                this.morphTargetMeshes = [];
+                this.isInitialized = false;
+                this.isAnimating = false;
+                this.currentAnimationId = null;
+                this.isSpeaking = false;
+                this.speechStartTime = null;
+                
+                // Camera system
+                this.cameraStream = null;
+                this.cameraEnabled = false;
+                
+                // NATURAL HAND MOTION SYSTEM
+                this.handAnimationState = {
+                    currentMotion: 'idle', // 'idle', 'gesture', 'express', 'open-wide'
+                    lastGestureTime: Date.now(),
+                    gestureCooldown: 5000 + Math.random() * 5000 // 5-10 seconds cooldown
+                };
+                
+                // NATURAL ANIMATION SYSTEM
+                this.lastAnimationTime = Date.now();
+                this.naturalAnimationEnabled = true;
+                
+                // FACE POSITIONING CONTROLS - USER REQUESTED VERTICAL OFFSET
+                this.cameraHeight = 2.1;        // Camera Y position (higher = look up)
+                this.cameraDistance = 1.2;      // Camera Z distance (closer = zoom in)
+                this.cameraLookAtHeight = 2.1;  // Where camera looks (face level)
+                this.avatarVerticalOffset = 1.5; // USER REQUESTED: Avatar Y offset
+                this.avatarScale = 1.8;         // Avatar scale (larger = bigger)
+                
+                // Initialize accurate lip sync engine
+                this.lipSyncEngine = new AccurateLipSyncEngine();
+                
+                console.log('🎭 AvatarViewer created with accurate lip sync engine');
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    console.log('🚀 Initializing Face-Focused Avatar Viewer with Accurate Lip Sync');
+                    
+                    // Wait for Three.js to load
+                    await waitForThreeJS();
+                    
+                    // Get canvas
+                    const canvas = document.getElementById('avatar-canvas');
+                    if (!canvas) {
+                        throw new Error('Canvas not found');
+                    }
+                    
+                    // Scene setup
+                    this.scene = new THREE.Scene();
+                    this.scene.background = new THREE.Color(0xf0f0f0);
+                    
+                    // FACE-FOCUSED CAMERA SETUP
+                    this.camera = new THREE.PerspectiveCamera(
+                        35, // Field of view for face detail
+                        canvas.clientWidth / canvas.clientHeight, 
+                        0.1, 
+                        1000
+                    );
+                    
+                    // Position camera to focus on FACE AREA
+                    this.camera.position.set(0, this.cameraHeight, this.cameraDistance);
+                    this.camera.lookAt(0, this.cameraLookAtHeight, 0);
+                    
+                    console.log(`📷 Camera positioned for face view: Y=${this.cameraHeight}, Z=${this.cameraDistance}, LookAt Y=${this.cameraLookAtHeight}`);
+                    
+                    // Renderer setup
+                    this.renderer = new THREE.WebGLRenderer({ 
+                        canvas: canvas, 
+                        antialias: true,
+                        alpha: true 
+                    });
+                    this.renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+                    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+                    
+                    // FACE-OPTIMIZED LIGHTING SETUP
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                    this.scene.add(ambientLight);
+                    
+                    // Key light for face definition
+                    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                    keyLight.position.set(0.5, 2.5, 1.5);
+                    this.scene.add(keyLight);
+                    
+                    // Fill light for facial details
+                    const fillLight = new THREE.DirectionalLight(0xffffff, 0.7);
+                    fillLight.position.set(-0.5, 2.2, 1.2);
+                    this.scene.add(fillLight);
+                    
+                    // Back rim light for face separation
+                    const rimLight = new THREE.DirectionalLight(0xffffff, 0.4);
+                    rimLight.position.set(0, 2.5, -1);
+                    this.scene.add(rimLight);
+                    
+                    // Top light for complete facial illumination
+                    const topLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                    topLight.position.set(0, 3, 0.5);
+                    this.scene.add(topLight);
+                    
+                    // Start render loop
+                    this.startRenderLoop();
+                    
+                    // Handle resize
+                    window.addEventListener('resize', () => this.onWindowResize());
+                    
+                    this.isInitialized = true;
+                    this.updateStatus('Ready - Accurate Lip Sync Engine Loaded');
+                    this.hideLoading();
+                    
+                console.log('✅ Face-focused Avatar Viewer with Accurate Lip Sync initialized');
+                
+                // Initialize camera system
+                this.initializeCamera();
+                
+                // Create face-focused placeholder avatar immediately for testing
+                setTimeout(() => {
+                    if (!this.avatar) {
+                        console.log('🆘 Creating accurate lip sync placeholder');
+                        this.createAccurateLipSyncPlaceholder();
+                    }
+                    
+                    // Test hand gestures after avatar is loaded
+                    setTimeout(() => {
+                        this.testHandGestures();
+                        
+                        // IMMEDIATE hand gesture test - force it right now
+                        console.log('🔥 FORCING immediate hand gesture test...');
+                        this.playHandGesture('greeting');
+                    }, 2000);
+                }, 1000);
+                    
+                    this.sendMessageToParent('initialized', { success: true });
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize:', error);
+                    this.updateStatus('Initialization failed');
+                    this.sendMessageToParent('error', { message: error.message });
+                }
+            }
+            
+            async loadAvatar(avatarUrl) {
+                try {
+                    console.log('📦 Loading avatar with accurate lip sync from:', avatarUrl);
+                    this.updateStatus('Loading avatar...');
+                    this.showLoading();
+                    
+                    if (typeof THREE === 'undefined') {
+                        throw new Error('THREE.js not loaded');
+                    }
+                    
+                    if (typeof THREE.GLTFLoader === 'undefined') {
+                        console.log('⚠️ GLTFLoader not available, creating accurate lip sync placeholder');
+                        this.createAccurateLipSyncPlaceholder();
+                        this.updateStatus('Using accurate lip sync placeholder');
+                        this.hideLoading();
+                        this.sendMessageToParent('avatarLoaded', { success: false, usedPlaceholder: true });
+                        return;
+                    }
+                    
+                    const loader = new THREE.GLTFLoader();
+                    
+                    return new Promise((resolve, reject) => {
+                        loader.load(
+                            avatarUrl,
+                            (gltf) => {
+                                console.log('✅ Avatar loaded successfully for accurate lip sync');
+                                
+                                // Remove old avatar if exists
+                                if (this.avatar) {
+                                    this.scene.remove(this.avatar);
+                                }
+                                
+                                this.avatar = gltf.scene;
+                                
+                                // FACE-FOCUSED POSITIONING
+                                this.positionAvatarForFaceView();
+                                
+                                // Find morph target meshes
+                                this.findMorphTargetMeshes();
+                                
+                                // DETAILED bone structure analysis
+                                this.analyzeAvatarStructure();
+                                
+                                this.scene.add(this.avatar);
+                                
+                                this.updateStatus('Avatar loaded - Accurate Lip Sync Ready');
+                                this.hideLoading();
+                                
+                                // Test morph targets
+                                setTimeout(() => this.testMorphTargets(), 1000);
+                                
+                                this.sendMessageToParent('avatarLoaded', { success: true });
+                                resolve();
+                            },
+                            (progress) => {
+                                const percent = (progress.loaded / progress.total * 100).toFixed(1);
+                                console.log('📥 Loading progress:', percent + '%');
+                                this.updateStatus(`Loading... ${percent}%`);
+                            },
+                            (error) => {
+                                console.error('❌ Avatar loading failed:', error);
+                                this.createAccurateLipSyncPlaceholder();
+                                this.updateStatus('Using accurate lip sync placeholder');
+                                this.hideLoading();
+                                this.sendMessageToParent('avatarLoaded', { success: false, usedPlaceholder: true });
+                                resolve();
+                            }
+                        );
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Load avatar error:', error);
+                    this.createAccurateLipSyncPlaceholder();
+                    this.updateStatus('Using accurate lip sync placeholder');
+                    this.hideLoading();
+                    this.sendMessageToParent('avatarLoaded', { success: false, usedPlaceholder: true });
+                }
+            }
+            
+            // FACE-FOCUSED POSITIONING SYSTEM
+            positionAvatarForFaceView() {
+                if (!this.avatar) return;
+                
+                // Calculate bounding box
+                const box = new THREE.Box3().setFromObject(this.avatar);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                console.log('📐 Avatar size:', size);
+                console.log('📍 Avatar center before positioning:', center);
+                
+                // FACE-FOCUSED POSITIONING - User requested vertical offset 1.5
+                this.avatar.position.x = -center.x;
+                this.avatar.position.y = -center.y + this.avatarVerticalOffset; // USER REQUESTED 1.5
+                this.avatar.position.z = -center.z;
+                
+                // Scale for close face detail
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                if (maxDimension > 0) {
+                    const scaleFactor = this.avatarScale / maxDimension;
+                    this.avatar.scale.setScalar(scaleFactor);
+                    console.log('🔄 Avatar scaled for face view by:', scaleFactor);
+                }
+                
+                console.log('✅ Avatar positioned for face focus at Y offset:', this.avatarVerticalOffset);
+                console.log('🎯 Face should now be perfectly visible');
+            }
+            
+            createAccurateLipSyncPlaceholder() {
+                console.log('📦 Creating accurate lip sync placeholder avatar...');
+                
+                const group = new THREE.Group();
+                
+                // HEAD - positioned at camera focus level with detailed features
+                const headGeometry = new THREE.SphereGeometry(0.25, 32, 32);
+                const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+                const head = new THREE.Mesh(headGeometry, headMaterial);
+                head.position.set(0, 2.1, 0); // At camera look-at height
+                
+                // EYES - realistic for accurate lip sync testing
+                const eyeGeometry = new THREE.SphereGeometry(0.04, 16, 16);
+                const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+                
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.08, 2.17, 0.22);
+                
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.08, 2.17, 0.22);
+                
+                // Eye whites for realism
+                const eyeWhiteGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+                const eyeWhiteMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                
+                const leftEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
+                leftEyeWhite.position.set(-0.08, 2.17, 0.2);
+                
+                const rightEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
+                rightEyeWhite.position.set(0.08, 2.17, 0.2);
+                
+                // NOSE for facial definition
+                const noseGeometry = new THREE.SphereGeometry(0.03, 12, 12);
+                const noseMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+                const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+                nose.position.set(0, 2.08, 0.24);
+                
+                // MOUTH - highly detailed for accurate lip sync demonstration
+                const mouthGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+                const mouthMaterial = new THREE.MeshLambertMaterial({ color: 0xdd4444 });
+                const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+                mouth.position.set(0, 2.0, 0.22);
+                mouth.name = 'accurate-mouth';
+                
+                // Upper and lower lips for detailed animation
+                const upperLipGeometry = new THREE.SphereGeometry(0.04, 12, 12);
+                const upperLipMaterial = new THREE.MeshLambertMaterial({ color: 0xcc3333 });
+                const upperLip = new THREE.Mesh(upperLipGeometry, upperLipMaterial);
+                upperLip.position.set(0, 2.02, 0.23);
+                upperLip.name = 'upper-lip';
+                
+                const lowerLipGeometry = new THREE.SphereGeometry(0.04, 12, 12);
+                const lowerLipMaterial = new THREE.MeshLambertMaterial({ color: 0xcc3333 });
+                const lowerLip = new THREE.Mesh(lowerLipGeometry, lowerLipMaterial);
+                lowerLip.position.set(0, 1.98, 0.23);
+                lowerLip.name = 'lower-lip';
+                
+                // JAW for jaw open animation
+                const jawGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                const jawMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+                const jaw = new THREE.Mesh(jawGeometry, jawMaterial);
+                jaw.position.set(0, 1.95, 0.1);
+                jaw.name = 'jaw';
+                
+                // EYEBROWS for expression
+                const browGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
+                const browMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                
+                const leftBrow = new THREE.Mesh(browGeometry, browMaterial);
+                leftBrow.position.set(-0.08, 2.23, 0.2);
+                leftBrow.rotation.z = 0.1;
+                
+                const rightBrow = new THREE.Mesh(browGeometry, browMaterial);
+                rightBrow.position.set(0.08, 2.23, 0.2);
+                rightBrow.rotation.z = -0.1;
+                
+                // HAIR for completeness
+                const hairGeometry = new THREE.SphereGeometry(0.28, 16, 16);
+                const hairMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+                hair.position.set(0, 2.2, -0.05);
+                hair.scale.set(1, 0.8, 0.9);
+                
+                // Minimal neck for context (user wants face focus)
+                const neckGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.2, 16);
+                const neckMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+                const neck = new THREE.Mesh(neckGeometry, neckMaterial);
+                neck.position.set(0, 1.8, 0);
+                
+                // Add all parts for accurate lip sync demonstration
+                group.add(hair);
+                group.add(head);
+                group.add(leftEyeWhite);
+                group.add(rightEyeWhite);
+                group.add(leftEye);
+                group.add(rightEye);
+                group.add(leftBrow);
+                group.add(rightBrow);
+                group.add(nose);
+                group.add(jaw);
+                group.add(mouth);
+                group.add(upperLip);
+                group.add(lowerLip);
+                group.add(neck);
+                
+                if (this.avatar) {
+                    this.scene.remove(this.avatar);
+                }
+                
+                this.avatar = group;
+                this.scene.add(this.avatar);
+                
+                console.log('✅ Accurate lip sync placeholder avatar created with detailed mouth parts');
+            }
+            
+            findMorphTargetMeshes() {
+                this.morphTargetMeshes = [];
+                
+                if (!this.avatar) return;
+                
+                this.avatar.traverse((child) => {
+                    if (child.isMesh && child.morphTargetDictionary && child.morphTargetInfluences) {
+                        console.log('🎯 Found mesh with morph targets:', child.name);
+                        console.log('📋 Available targets:', Object.keys(child.morphTargetDictionary));
+                        this.morphTargetMeshes.push(child);
+                    }
+                });
+                
+                console.log('📊 Total morph target meshes found:', this.morphTargetMeshes.length);
+                
+                // Debug: List all bones/objects in the avatar for hand detection
+                this.debugAvatarBones();
+            }
+            
+            debugAvatarBones() {
+                if (!this.avatar) return;
+                
+                console.log('🦴 Avatar bone/object structure:');
+                const bones = [];
+                
+                this.avatar.traverse((child) => {
+                    if (child.name) {
+                        bones.push(child.name);
+                        // Highlight potential hand bones
+                        const name = child.name.toLowerCase();
+                        if (name.includes('hand') || name.includes('arm') || name.includes('wrist') || name.includes('finger')) {
+                            console.log(`🤲 Potential hand bone: ${child.name} (type: ${child.type})`);
+                        }
+                    }
+                });
+                
+                console.log('📋 All named objects:', bones);
+            }
+            
+            analyzeAvatarStructure() {
+                if (!this.avatar) return;
+                
+                console.log('🔍 DETAILED AVATAR ANALYSIS:');
+                console.log('==========================================');
+                
+                const allObjects = [];
+                const skeletonBones = [];
+                const meshes = [];
+                
+                this.avatar.traverse((child) => {
+                    allObjects.push({
+                        name: child.name || 'unnamed',
+                        type: child.type,
+                        hasPosition: !!child.position,
+                        hasRotation: !!child.rotation,
+                        hasChildren: child.children.length > 0
+                    });
+                    
+                    if (child.type === 'Bone') {
+                        skeletonBones.push(child.name || 'unnamed_bone');
+                        console.log(`🦴 BONE: ${child.name} (children: ${child.children.length})`);
+                    }
+                    
+                    if (child.type === 'Mesh') {
+                        meshes.push(child.name || 'unnamed_mesh');
+                        console.log(`🔶 MESH: ${child.name}`);
+                    }
+                    
+                    if (child.type === 'SkinnedMesh') {
+                        console.log(`🎨 SKINNED MESH: ${child.name}`);
+                        if (child.skeleton && child.skeleton.bones) {
+                            console.log(`  ➡️ Skeleton bones: ${child.skeleton.bones.length}`);
+                            child.skeleton.bones.forEach((bone, index) => {
+                                const boneName = bone.name || `bone_${index}`;
+                                if (boneName.toLowerCase().includes('hand') || 
+                                    boneName.toLowerCase().includes('arm') ||
+                                    boneName.toLowerCase().includes('wrist')) {
+                                    console.log(`    🤲 HAND/ARM BONE: ${boneName}`);
+                                }
+                            });
+                        }
+                    }
+                });
+                
+                console.log('📋 SUMMARY:');
+                console.log(`Total objects: ${allObjects.length}`);
+                console.log(`Skeleton bones: ${skeletonBones.length}`);
+                console.log(`Meshes: ${meshes.length}`);
+                console.log('==========================================');
+            }
+            
+            // ACCURATE MORPH TARGET SETTING
+            setMorphTarget(targetName, value) {
+                const clampedValue = Math.max(0, Math.min(1, value));
+                let success = false;
+                
+                // Try real morph targets first
+                this.morphTargetMeshes.forEach(mesh => {
+                    if (mesh.morphTargetDictionary && mesh.morphTargetInfluences) {
+                        const targetIndex = mesh.morphTargetDictionary[targetName];
+                        if (targetIndex !== undefined) {
+                            mesh.morphTargetInfluences[targetIndex] = clampedValue;
+                            success = true;
+                        }
+                    }
+                });
+                
+                // Enhanced placeholder animation for accurate lip sync
+                if (!success && this.avatar) {
+                    success = this.animateAccuratePlaceholder(targetName, clampedValue);
+                }
+                
+                return success;
+            }
+            
+            // ACCURATE PLACEHOLDER ANIMATION
+            animateAccuratePlaceholder(targetName, value) {
+                const mouth = this.avatar.getObjectByName('accurate-mouth');
+                const upperLip = this.avatar.getObjectByName('upper-lip');
+                const lowerLip = this.avatar.getObjectByName('lower-lip');
+                const jaw = this.avatar.getObjectByName('jaw');
+                
+                let success = false;
+                
+                if (mouth && upperLip && lowerLip && jaw) {
+                    switch (targetName) {
+                        case 'jawOpen':
+                            // Accurate jaw opening animation
+                            jaw.position.y = 1.95 - (value * 0.15);
+                            lowerLip.position.y = 1.98 - (value * 0.12);
+                            mouth.scale.y = 1 + (value * 2.5);
+                            success = true;
+                            break;
+                            
+                        case 'mouthOpen':
+                            // Mouth opening without jaw movement
+                            mouth.scale.y = 1 + (value * 1.8);
+                            upperLip.position.y = 2.02 + (value * 0.05);
+                            lowerLip.position.y = 1.98 - (value * 0.05);
+                            success = true;
+                            break;
+                            
+                        case 'mouthSmile':
+                        case 'mouthSmileLeft':
+                        case 'mouthSmileRight':
+                            // Accurate smile animation
+                            mouth.scale.x = 1 + (value * 1.6);
+                            upperLip.scale.x = 1 + (value * 1.4);
+                            lowerLip.scale.x = 1 + (value * 1.4);
+                            // Slight upward curve
+                            mouth.position.y = 2.0 + (value * 0.03);
+                            success = true;
+                            break;
+                            
+                        case 'mouthFunnel':
+                        case 'mouthPucker':
+                            // Accurate pucker/funnel animation
+                            mouth.scale.x = 1 - (value * 0.4);
+                            mouth.scale.z = 1 + (value * 2.0);
+                            mouth.position.z = 0.22 + (value * 0.1);
+                            upperLip.scale.x = 1 - (value * 0.3);
+                            lowerLip.scale.x = 1 - (value * 0.3);
+                            upperLip.position.z = 0.23 + (value * 0.08);
+                            lowerLip.position.z = 0.23 + (value * 0.08);
+                            success = true;
+                            break;
+                    }
+                }
+                
+                return success;
+            }
+            
+            testMorphTargets() {
+                console.log('🧪 Testing accurate lip sync morph targets...');
+                
+                const testTargets = [
+                    'jawOpen', 'mouthOpen', 'mouthSmile', 'mouthFunnel'
+                ];
+                
+                let testIndex = 0;
+                const runTest = () => {
+                    if (testIndex < testTargets.length) {
+                        const target = testTargets[testIndex];
+                        console.log('🧪 Testing accurate animation:', target);
+                        
+                        const success = this.setMorphTarget(target, 0.8);
+                        if (success) {
+                            console.log('✅ Working accurate target:', target);
+                        }
+                        
+                        setTimeout(() => {
+                            this.setMorphTarget(target, 0);
+                            testIndex++;
+                            setTimeout(runTest, 200);
+                        }, 800);
+                    } else {
+                        console.log('🏁 Accurate lip sync testing complete');
+                    }
+                };
+                
+                setTimeout(runTest, 500);
+            }
+            
+            testHandGestures() {
+                console.log('🤲 Testing hand gestures...');
+                
+                const gestures = ['greeting', 'explaining', 'emphasizing', 'welcoming'];
+                let gestureIndex = 0;
+                
+                const runGestureTest = () => {
+                    if (gestureIndex < gestures.length) {
+                        const gesture = gestures[gestureIndex];
+                        console.log(`🎭 Testing gesture: ${gesture}`);
+                        
+                        this.playHandGesture(gesture);
+                        
+                        gestureIndex++;
+                        setTimeout(runGestureTest, 3000); // Wait 3 seconds between gestures
+                    } else {
+                        console.log('🏁 Hand gesture testing complete');
+                    }
+                };
+                
+                setTimeout(runGestureTest, 1000);
+            }
+            
+            // MAIN ACCURATE SPEAKING FUNCTION
+            async startSpeaking(text) {
+                try {
+                    console.log('🗣️ Starting ACCURATE lip sync for:', text);
+                    this.updateStatus('Speaking with accurate lip sync...');
+                    
+                    // Stop any current animation and speech
+                    this.stopSpeaking();
+                    
+                    // Reset mouth and set speaking state
+                    this.resetMouth();
+                    this.resetNaturalExpressions();
+                    this.isSpeaking = true;
+                    this.speechStartTime = Date.now();
+                    
+                    // Set speaking intensity for natural animations
+                    this.lipSyncEngine.setSpeakingIntensity(0.6);
+                    
+                    // ACCURATE PHONEME ANALYSIS
+                    const phonemeSequence = this.lipSyncEngine.textToAccuratePhonemes(text);
+                    console.log('🎯 Accurate phoneme sequence ready:', phonemeSequence.length, 'phonemes');
+                    
+                    // HAND GESTURE ANALYSIS
+                    const detectedGestures = this.lipSyncEngine.analyzeTextForGestures(text);
+                    const gestureTimings = this.lipSyncEngine.planGestureTimings(text, phonemeSequence, detectedGestures);
+                    console.log('🤲 Hand gestures detected:', detectedGestures);
+                    console.log('🤲 Hand gestures planned:', gestureTimings.length, 'gestures');
+                    
+                    // FORCE a greeting gesture for testing
+                    if (gestureTimings.length === 0) {
+                        gestureTimings.push({
+                            type: 'greeting',
+                            startTime: 500,
+                            duration: 2000,
+                            pattern: { name: 'Test Greeting', duration: 2000 }
+                        });
+                        console.log('📍 FORCED greeting gesture for testing');
+                    }
+                    
+                    // Create speech utterance
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 1.0;  // Normal speaking rate
+                    utterance.pitch = 1.0;
+                    utterance.volume = 1.0;
+                    
+                    // ACCURATE LIP SYNC ANIMATION
+                    this.isAnimating = true;
+                    let currentPhonemeIndex = 0;
+                    let phonemeStartTime = Date.now();
+                    let speechStartTime = Date.now();
+                    let gestureIndex = 0;
+                    
+                    const accurateLipSync = () => {
+                        if (!this.isAnimating || !this.isSpeaking) {
+                            return;
+                        }
+                        
+                        const elapsed = Date.now() - phonemeStartTime;
+                        const speechElapsed = Date.now() - speechStartTime;
+                        
+                        // HAND GESTURE EXECUTION
+                        if (gestureIndex < gestureTimings.length) {
+                            const nextGesture = gestureTimings[gestureIndex];
+                            console.log(`🕰️ Gesture check: elapsed=${speechElapsed}ms, nextGesture.startTime=${nextGesture.startTime}ms`);
+                            if (speechElapsed >= nextGesture.startTime) {
+                                this.playHandGesture(nextGesture.type);
+                                gestureIndex++;
+                            }
+                        }
+                        
+                        if (currentPhonemeIndex < phonemeSequence.length) {
+                            const currentPhoneme = phonemeSequence[currentPhonemeIndex];
+                            
+                            // Check if we need to move to next phoneme
+                            if (elapsed >= currentPhoneme.duration) {
+                                currentPhonemeIndex++;
+                                phonemeStartTime = Date.now();
+                                
+                                if (currentPhonemeIndex < phonemeSequence.length) {
+                                    const nextPhoneme = phonemeSequence[currentPhonemeIndex];
+                                }
+                            }
+                            
+                            // Apply ACCURATE viseme for current phoneme
+                            if (currentPhoneme) {
+                                const viseme = this.lipSyncEngine.getVisemeForPhoneme(currentPhoneme.phoneme);
+                                
+                                // Smooth transition calculation
+                                const progress = Math.min(1, elapsed / currentPhoneme.duration);
+                                const easeInOut = progress < 0.5 ? 
+                                    2 * progress * progress : 
+                                    1 - Math.pow(-2 * progress + 2, 3) / 2;
+                                
+                                // Apply ACCURATE mouth shapes
+                                this.setMorphTarget('jawOpen', viseme.jawOpen * easeInOut);
+                                this.setMorphTarget('mouthOpen', viseme.mouthOpen * easeInOut);
+                                this.setMorphTarget('mouthSmile', viseme.mouthSmile * easeInOut);
+                                this.setMorphTarget('mouthSmileLeft', viseme.mouthSmile * easeInOut);
+                                this.setMorphTarget('mouthSmileRight', viseme.mouthSmile * easeInOut);
+                                this.setMorphTarget('mouthFunnel', viseme.mouthFunnel * easeInOut);
+                                this.setMorphTarget('mouthPucker', viseme.mouthPucker * easeInOut);
+                            }
+                        }
+                        
+                        this.currentAnimationId = requestAnimationFrame(accurateLipSync);
+                    };
+                    
+                    // Start ACCURATE lip sync
+                    accurateLipSync();
+                    
+                    // Start speech synthesis
+                    speechSynthesis.speak(utterance);
+                    
+                    return new Promise((resolve) => {
+                        utterance.onend = () => {
+                            setTimeout(() => {
+                                this.stopSpeaking();
+                                resolve();
+                            }, 300);
+                        };
+                        
+                        utterance.onerror = (error) => {
+                            console.error('❌ Speech synthesis error:', error);
+                            this.stopSpeaking();
+                            resolve();
+                        };
+                        
+                        // Backup timeout based on accurate phoneme duration
+                        const totalDuration = phonemeSequence.reduce((sum, p) => sum + p.duration, 0) + 1000;
+                        setTimeout(() => {
+                            if (this.isSpeaking) {
+                                this.stopSpeaking();
+                                resolve();
+                            }
+                        }, totalDuration);
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ ACCURATE speaking error:', error);
+                    this.stopSpeaking();
+                }
+            }
+            
+            stopSpeaking() {
+                
+                this.isAnimating = false;
+                this.isSpeaking = false;
+                
+                if (speechSynthesis.speaking) {
+                    speechSynthesis.cancel();
+                }
+                
+                if (this.currentAnimationId) {
+                    cancelAnimationFrame(this.currentAnimationId);
+                    this.currentAnimationId = null;
+                }
+                
+                setTimeout(() => {
+                    this.resetMouth();
+                    this.resetNaturalExpressions();
+                    this.lipSyncEngine.setSpeakingIntensity(0);
+                    this.updateStatus('Ready - Accurate Lip Sync');
+                    this.sendMessageToParent('speechEnded', {});
+                }, 150);
+            }
+            
+            resetMouth() {
+                const mouthTargets = [
+                    'jawOpen', 'mouthSmileLeft', 'mouthSmileRight', 'mouthFunnel',
+                    'mouthPucker', 'mouthFrownLeft', 'mouthFrownRight', 'mouthLeft', 
+                    'mouthRight', 'mouthOpen', 'mouthSmile'
+                ];
+                
+                mouthTargets.forEach(target => {
+                    this.setMorphTarget(target, 0);
+                });
+            }
+            
+            resetNaturalExpressions() {
+                // Reset all facial expression targets to neutral
+                const expressionTargets = [
+                    'browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight',
+                    'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight',
+                    'eyeLookDownLeft', 'eyeLookDownRight', 'eyeLookUpLeft', 'eyeLookUpRight',
+                    'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft', 'eyeLookOutRight',
+                    'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight',
+                    'noseSneerLeft', 'noseSneerRight',
+                    'mouthDimpleLeft', 'mouthDimpleRight', 'mouthStretchLeft', 'mouthStretchRight',
+                    'mouthRollLower', 'mouthRollUpper', 'mouthPressLeft', 'mouthPressRight',
+                    'mouthUpperUpLeft', 'mouthUpperUpRight', 'mouthLowerDownLeft', 'mouthLowerDownRight'
+                ];
+                
+                expressionTargets.forEach(target => {
+                    this.setMorphTarget(target, 0);
+                });
+                
+            }
+            
+            // HAND GESTURE ANIMATION METHODS
+            playHandGesture(gestureType) {
+                
+                // Reset current hand position
+                this.resetHandPosition();
+                
+                const pattern = this.lipSyncEngine.handGesturePatterns[gestureType];
+                if (!pattern) {
+                    console.warn('Unknown gesture type:', gestureType);
+                    return;
+                }
+                
+                // Update hand animation state
+                this.handAnimationState.currentMotion = gestureType;
+                this.handAnimationState.lastGestureTime = Date.now();
+                
+                // Execute gesture pattern
+                switch (gestureType) {
+                    case 'greeting':
+                        this.animateGreetingWave(pattern.duration);
+                        break;
+                    case 'explaining':
+                        this.animateExplainingGesture(pattern.duration);
+                        break;
+                    case 'emphasizing':
+                        this.animateEmphasizingGesture(pattern.duration);
+                        break;
+                    case 'welcoming':
+                        this.animateWelcomingGesture(pattern.duration);
+                        break;
+                    default:
+                        this.animateIdleGesture();
+                }
+                
+                // Return to idle after gesture
+                setTimeout(() => {
+                    this.handAnimationState.currentMotion = 'idle';
+                    this.resetHandPosition();
+                }, pattern.duration);
+            }
+            
+            animateGreetingWave(duration) {
+                // Friendly wave motion
+                const steps = Math.floor(duration / 100); // 10 FPS
+                let step = 0;
+                
+                const waveAnimation = () => {
+                    if (step >= steps) return;
+                    
+                    const progress = step / steps;
+                    const wave = Math.sin(progress * Math.PI * 4) * 0.3; // 4 waves
+                    
+                    // Simulate hand position (you can adapt this to your hand bone system)
+                    this.setHandPosition('right', {
+                        x: 0.3 + wave * 0.2,
+                        y: 1.2 + Math.abs(wave) * 0.1,
+                        z: 0.1,
+                        rotation: wave * 0.5
+                    });
+                    
+                    step++;
+                    setTimeout(waveAnimation, 100);
+                };
+                
+                waveAnimation();
+            }
+            
+            animateExplainingGesture(duration) {
+                // Open palms moving up and down
+                const steps = Math.floor(duration / 150); // Slower, more deliberate
+                let step = 0;
+                
+                const explainAnimation = () => {
+                    if (step >= steps) return;
+                    
+                    const progress = step / steps;
+                    const upDown = Math.sin(progress * Math.PI * 2) * 0.15; // 2 cycles
+                    const openClose = Math.sin(progress * Math.PI * 3) * 0.2; // 3 cycles
+                    
+                    // Both hands move in explanation
+                    this.setHandPosition('left', {
+                        x: -0.4 + openClose,
+                        y: 1.0 + upDown,
+                        z: 0.2,
+                        rotation: 0
+                    });
+                    
+                    this.setHandPosition('right', {
+                        x: 0.4 - openClose,
+                        y: 1.0 + upDown,
+                        z: 0.2,
+                        rotation: 0
+                    });
+                    
+                    step++;
+                    setTimeout(explainAnimation, 150);
+                };
+                
+                explainAnimation();
+            }
+            
+            animateEmphasizingGesture(duration) {
+                // Pointing gesture for emphasis
+                const steps = Math.floor(duration / 120);
+                let step = 0;
+                
+                const emphasisAnimation = () => {
+                    if (step >= steps) return;
+                    
+                    const progress = step / steps;
+                    const point = progress < 0.5 ? progress * 2 : 2 - (progress * 2); // Point out then back
+                    
+                    this.setHandPosition('right', {
+                        x: 0.2 + point * 0.3,
+                        y: 1.1,
+                        z: 0.1 + point * 0.2,
+                        rotation: point * 0.3
+                    });
+                    
+                    step++;
+                    setTimeout(emphasisAnimation, 120);
+                };
+                
+                emphasisAnimation();
+            }
+            
+            animateWelcomingGesture(duration) {
+                // Open wide arms for welcoming
+                const steps = Math.floor(duration / 200);
+                let step = 0;
+                
+                const welcomeAnimation = () => {
+                    if (step >= steps) return;
+                    
+                    const progress = step / steps;
+                    const openness = Math.sin(progress * Math.PI) * 0.6; // Open and close
+                    
+                    this.setHandPosition('left', {
+                        x: -0.3 - openness,
+                        y: 1.2,
+                        z: 0.1,
+                        rotation: -openness * 0.5
+                    });
+                    
+                    this.setHandPosition('right', {
+                        x: 0.3 + openness,
+                        y: 1.2,
+                        z: 0.1,
+                        rotation: openness * 0.5
+                    });
+                    
+                    step++;
+                    setTimeout(welcomeAnimation, 200);
+                };
+                
+                welcomeAnimation();
+            }
+            
+            setHandPosition(hand, position) {
+                if (!this.avatar) return;
+                
+                // More comprehensive hand bone search patterns
+                const possibleNames = [
+                    `${hand}Hand`, `${hand}_hand`, `${hand}Arm`, `${hand}_arm`,
+                    `${hand}Wrist`, `${hand}_wrist`, `${hand}Palm`, `${hand}_palm`,
+                    `hand_${hand}`, `arm_${hand}`, `wrist_${hand}`,
+                    `Hand.${hand}`, `Arm.${hand}`, `hand.${hand}`,
+                    `${hand.charAt(0).toUpperCase() + hand.slice(1)}Hand`,
+                    `${hand.charAt(0).toUpperCase() + hand.slice(1)}Arm`,
+                    `${hand.charAt(0).toUpperCase() + hand.slice(1)}Wrist`
+                ];
+                
+                let handBone = null;
+                
+                // Search for hand bones
+                for (const name of possibleNames) {
+                    handBone = this.avatar.getObjectByName(name);
+                    if (handBone) {
+                        break;
+                    }
+                }
+                
+                // If not found by name, search by traversing the avatar
+                if (!handBone) {
+                    this.avatar.traverse((child) => {
+                        if (child.name && child.name.toLowerCase().includes(hand) && 
+                            (child.name.toLowerCase().includes('hand') || 
+                             child.name.toLowerCase().includes('arm') ||
+                             child.name.toLowerCase().includes('wrist'))) {
+                            handBone = child;
+                            return;
+                        }
+                    });
+                }
+                
+                if (handBone) {
+                    // Apply position
+                    handBone.position.set(position.x, position.y, position.z);
+                    if (position.rotation !== undefined) {
+                        handBone.rotation.z = position.rotation;
+                    }
+                } else {
+                    // If no hand bone found, create a visual indicator for debugging
+                    this.createHandPositionIndicator(hand, position);
+                }
+            }
+            
+            createHandPositionIndicator(hand, position) {
+                // Create a LARGE, BRIGHT visual sphere to show where the hand should be
+                const geometry = new THREE.SphereGeometry(0.15, 16, 16); // Much larger sphere
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: hand === 'left' ? 0xff0000 : 0x00ff00,
+                    transparent: false,
+                    opacity: 1.0,
+                    emissive: hand === 'left' ? 0x440000 : 0x004400 // Make it glow
+                });
+                
+                const indicator = new THREE.Mesh(geometry, material);
+                indicator.position.set(position.x, position.y, position.z);
+                indicator.name = `${hand}_hand_indicator`;
+                
+                // Remove old indicator
+                const oldIndicator = this.scene.getObjectByName(`${hand}_hand_indicator`);
+                if (oldIndicator) {
+                    this.scene.remove(oldIndicator);
+                }
+                
+                this.scene.add(indicator);
+                
+                // Remove indicator after 10 seconds
+                setTimeout(() => {
+                    this.scene.remove(indicator);
+                }, 10000);
+            }
+            
+            resetHandPosition() {
+                // Reset hands to neutral position
+                this.setHandPosition('left', { x: -0.3, y: 0.8, z: 0, rotation: 0 });
+                this.setHandPosition('right', { x: 0.3, y: 0.8, z: 0, rotation: 0 });
+            }
+            
+            animateIdleGesture() {
+                // Subtle idle hand movements
+                const time = Date.now() * 0.0005;
+                const subtleX = Math.sin(time) * 0.02;
+                const subtleY = Math.sin(time * 0.7) * 0.01;
+                
+                this.setHandPosition('left', { x: -0.3 + subtleX, y: 0.8 + subtleY, z: 0, rotation: 0 });
+                this.setHandPosition('right', { x: 0.3 - subtleX, y: 0.8 + subtleY, z: 0, rotation: 0 });
+            }
+            
+            setMouthExpression(open = 0, smile = 0, pucker = 0) {
+                this.setMorphTarget('jawOpen', open);
+                this.setMorphTarget('mouthOpen', open);
+                this.setMorphTarget('mouthSmileLeft', smile);
+                this.setMorphTarget('mouthSmileRight', smile);
+                this.setMorphTarget('mouthSmile', smile);
+                this.setMorphTarget('mouthPucker', pucker);
+                this.setMorphTarget('mouthFunnel', pucker);
+            }
+            
+            startRenderLoop() {
+                const render = () => {
+                    const currentTime = Date.now();
+                    const deltaTime = currentTime - this.lastAnimationTime;
+                    this.lastAnimationTime = currentTime;
+                    
+                    // Update natural animations
+                    if (this.naturalAnimationEnabled && this.lipSyncEngine) {
+                        this.lipSyncEngine.updateNaturalAnimations(this, deltaTime);
+                    }
+                    
+                    if (this.renderer && this.scene && this.camera) {
+                        this.renderer.render(this.scene, this.camera);
+                    }
+                    requestAnimationFrame(render);
+                };
+                render();
+            }
+            
+            onWindowResize() {
+                if (!this.camera || !this.renderer) return;
+                
+                const canvas = this.renderer.domElement;
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+                
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(width, height);
+            }
+            
+            updateStatus(text) {
+                const statusEl = document.getElementById('status-overlay');
+                if (statusEl) {
+                    statusEl.textContent = text;
+                }
+            }
+            
+            showLoading() {
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) {
+                    loadingEl.style.display = 'block';
+                }
+            }
+            
+            hideLoading() {
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) {
+                    loadingEl.style.display = 'none';
+                }
+            }
+            
+            sendMessageToParent(type, data) {
+                try {
+                    window.parent.postMessage({
+                        type: type,
+                        data: data,
+                        source: 'avatar-viewer'
+                    }, '*');
+                } catch (error) {
+                    console.error('Failed to send message to parent:', error);
+                }
+            }
+            
+            // Camera system methods
+            initializeCamera() {
+                console.log('📷 Initializing camera system...');
+                
+                const cameraToggle = document.getElementById('camera-toggle');
+                const cameraStatus = document.getElementById('camera-status');
+                
+                if (cameraToggle) {
+                    cameraToggle.addEventListener('click', () => {
+                        this.toggleCamera();
+                    });
+                }
+                
+                // Initially try to start camera
+                this.startCamera();
+            }
+            
+            async startCamera() {
+                try {
+                    console.log('📷 Starting camera...');
+                    
+                    const video = document.getElementById('camera-video');
+                    const status = document.getElementById('camera-status');
+                    const toggle = document.getElementById('camera-toggle');
+                    
+                    if (!video) {
+                        console.error('❌ Camera video element not found');
+                        return;
+                    }
+                    
+                    // Request camera access
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 320 },
+                            height: { ideal: 240 },
+                            facingMode: 'user'
+                        },
+                        audio: false
+                    });
+                    
+                    this.cameraStream = stream;
+                    video.srcObject = stream;
+                    this.cameraEnabled = true;
+                    
+                    if (status) status.textContent = 'Camera Active';
+                    if (toggle) toggle.textContent = '📷 ON';
+                    
+                    console.log('✅ Camera started successfully');
+                    
+                } catch (error) {
+                    console.error('❌ Camera access denied or failed:', error);
+                    
+                    const status = document.getElementById('camera-status');
+                    const toggle = document.getElementById('camera-toggle');
+                    
+                    if (status) status.textContent = 'Camera Denied';
+                    if (toggle) toggle.textContent = '📷 OFF';
+                    
+                    this.cameraEnabled = false;
+                }
+            }
+            
+            stopCamera() {
+                console.log('📷 Stopping camera...');
+                
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                    this.cameraStream = null;
+                }
+                
+                const video = document.getElementById('camera-video');
+                const status = document.getElementById('camera-status');
+                const toggle = document.getElementById('camera-toggle');
+                
+                if (video) video.srcObject = null;
+                if (status) status.textContent = 'Camera Disabled';
+                if (toggle) toggle.textContent = '📷 OFF';
+                
+                this.cameraEnabled = false;
+            }
+            
+            toggleCamera() {
+                if (this.cameraEnabled) {
+                    this.stopCamera();
+                } else {
+                    this.startCamera();
+                }
+            }
+            
+            dispose() {
+                this.isAnimating = false;
+                this.isSpeaking = false;
+                speechSynthesis.cancel();
+                
+                // Stop camera
+                this.stopCamera();
+                
+                if (this.currentAnimationId) {
+                    cancelAnimationFrame(this.currentAnimationId);
+                }
+                
+                if (this.renderer) {
+                    this.renderer.dispose();
+                }
+                if (this.scene) {
+                    this.scene.clear();
+                }
+                
+                console.log('🗑️ Accurate lip sync avatar viewer disposed');
+            }
+        }
+        
+        // Message handler for communication with Flutter
+        window.addEventListener('message', async (event) => {
+            try {
+                const { type, data } = event.data;
+                
+                console.log('📨 Received message:', type, data);
+                
+                switch (type) {
+                    case 'loadAvatar':
+                        if (avatarViewer && data.url) {
+                            await avatarViewer.loadAvatar(data.url);
+                        }
+                        break;
+                        
+                    case 'speak':
+                        if (avatarViewer && data.text) {
+                            console.log('🎯 ACCURATE lip sync speech request:', data.text);
+                            await avatarViewer.startSpeaking(data.text);
+                        }
+                        break;
+                        
+                    case 'stopSpeaking':
+                        if (avatarViewer) {
+                            avatarViewer.stopSpeaking();
+                        }
+                        break;
+                        
+                    case 'setMouthExpression':
+                        if (avatarViewer) {
+                            avatarViewer.setMouthExpression(
+                                data.open || 0,
+                                data.smile || 0,
+                                data.pucker || 0
+                            );
+                        }
+                        break;
+                        
+                    case 'resetMouth':
+                        if (avatarViewer) {
+                            avatarViewer.resetMouth();
+                        }
+                        break;
+                        
+                    case 'resetNaturalExpressions':
+                        if (avatarViewer) {
+                            avatarViewer.resetNaturalExpressions();
+                        }
+                        break;
+                        
+                    case 'enableNaturalAnimations':
+                        if (avatarViewer) {
+                            avatarViewer.naturalAnimationEnabled = data.enabled !== false;
+                            console.log('🎭 Natural animations:', avatarViewer.naturalAnimationEnabled ? 'enabled' : 'disabled');
+                        }
+                        break;
+                        
+                    case 'playHandGesture':
+                        if (avatarViewer && data.gesture) {
+                            avatarViewer.playHandGesture(data.gesture);
+                        }
+                        break;
+                        
+                    case 'resetHandPosition':
+                        if (avatarViewer) {
+                            avatarViewer.resetHandPosition();
+                        }
+                        break;
+                        
+                    case 'toggleCamera':
+                        if (avatarViewer) {
+                            avatarViewer.toggleCamera();
+                        }
+                        break;
+                        
+                    case 'startCamera':
+                        if (avatarViewer) {
+                            avatarViewer.startCamera();
+                        }
+                        break;
+                        
+                    case 'stopCamera':
+                        if (avatarViewer) {
+                            avatarViewer.stopCamera();
+                        }
+                        break;
+                        
+                    default:
+                        console.log('Unknown message type:', type);
+                }
+            } catch (error) {
+                console.error('Message handling error:', error);
+            }
+        });
+        
+        // Initialize avatar viewer when page loads
+        let avatarViewer;
+        window.addEventListener('load', () => {
+            console.log('🌐 ACCURATE lip sync avatar viewer page loaded');
+            avatarViewer = new AvatarViewer();
+        });
+        
+        // Cleanup on unload
+        window.addEventListener('beforeunload', () => {
+            if (avatarViewer) {
+                avatarViewer.dispose();
+            }
+        });
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Web – counseling_bot.local",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "chrome",
+        "--web-hostname=counseling_bot.local",
+        "--web-port=8080",
+        "--dart-define=ABSTRACTAPI_KEY=2a31e8bff61647fdbb9f65c3aacf628d",
+
+      ]
+    }
+  ]
+}
