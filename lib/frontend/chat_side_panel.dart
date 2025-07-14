@@ -122,13 +122,13 @@ class ChatSidePanel extends StatelessWidget {
   static const double panelWidth = 240.0;
 
   const ChatSidePanel({
-    Key? key,
+    super.key,
     required this.isOpen,
     required this.onClose,
     required this.onNewConversation,
     required this.onSearch,
     required this.onChatSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

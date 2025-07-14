@@ -187,7 +187,7 @@ class ChatHistoryPanel extends StatelessWidget {
     List<Map<String, String>> results = [];
 
     for (var doc in querySnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data();
       final chatId = data['chatId']?.toString() ?? '';
       final title = data['title']?.toString() ?? '(ללא כותרת)';
 
@@ -203,7 +203,7 @@ class ChatHistoryPanel extends StatelessWidget {
 
         if (messageSnapshot.docs.isNotEmpty) {
           final messageData =
-              messageSnapshot.docs.first.data() as Map<String, dynamic>;
+              messageSnapshot.docs.first.data();
           messageText = messageData['text']?.toString() ?? '';
         }
       }

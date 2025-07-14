@@ -1,5 +1,7 @@
 // lib/home/screens/working_speech_service.dart
 
+// ignore_for_file: avoid_web_libraries_in_flutter
+
 import 'dart:html' as html;
 import 'dart:js' as js;
 import 'dart:convert';
@@ -380,7 +382,7 @@ class WorkingSpeechService {
         
         if (data['results'] != null && data['results'].isNotEmpty) {
           final transcript = data['results'][0]['alternatives'][0]['transcript'];
-          return transcript?.toString()?.trim();
+          return transcript?.toString().trim();
         }
       }
       

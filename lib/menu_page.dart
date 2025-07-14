@@ -4,6 +4,8 @@ import 'settings_page.dart';
 import 'language_page.dart';
 
 class MenuPage extends StatefulWidget {
+  const MenuPage({super.key});
+
   @override
   _MenuPageState createState() => _MenuPageState();
 }

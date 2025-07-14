@@ -10,7 +10,7 @@ const apiKey = String.fromEnvironment('ABSTRACTAPI_KEY');
 if (apiKey.isEmpty) {
   throw Exception('Missing API key! Pass it via --dart-define.');
 }
-    if (apiKey == null || apiKey.isEmpty) {
+    if (apiKey.isEmpty) {
       throw Exception(
         'API key not found! Make sure .env loaded and contains ABSTRACTAPI_KEY.'
       );

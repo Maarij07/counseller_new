@@ -18,6 +18,8 @@ class ChatService {
 
     final String currentUserId = _auth.currentUser!.uid;
     final Timestamp timestamp = Timestamp.now();
+    // updating it adding chatId  for 
+    final String chatId = _auth.currentUser!.uid;
 
     try {
       // First, store the message in messages collection
@@ -61,7 +63,6 @@ class ChatService {
         // Add prediction response to messages collection
         await _firestore.collection('messages').add({
             'chatId': chatId,
-
           'text': 'Prediction Score: ${prediction['prediction']}',
           'sender': 'system',
           'userId': currentUserId,
@@ -81,7 +82,9 @@ class ChatService {
       }
     } catch (e) {
       print('Error in sendMessage: $e');
-      final prediction = await _mlService.getPrediction(message, userId);
+      // updating it Adding currentUserId instead of userId
+      final prediction = await _mlService.getPrediction(message, currentUserId);
+      // final prediction = await _mlService.getPrediction(message, userId);
       // Add error message to messages collection
       await _firestore.collection('messages').add({
         'text': 'An error occurred while processing your message.',

@@ -1,10 +1,14 @@
+// ignore_for_file: file_names
 
 import 'package:flutter/material.dart';
 import 'package:phychological_counselor/frontend/validation.dart';
 import 'package:phychological_counselor/frontend/firestore_helper.dart';
 
 class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _SignUpPageState createState() => _SignUpPageState();
 }
 
@@ -86,18 +90,6 @@ _showStyledError('Signup Error', 'Emails do not match.');
   );
 }
 
-  void _showInlineError(String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message, style: const TextStyle(color: Colors.white)),
-      backgroundColor: Colors.redAccent,
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      duration: const Duration(seconds: 3),
-    ),
-  );
-}
 
 
   @override

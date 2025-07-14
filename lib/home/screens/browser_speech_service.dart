@@ -1,5 +1,7 @@
 // lib/home/screens/browser_speech_service.dart
 
+// ignore_for_file: avoid_web_libraries_in_flutter
+
 import 'dart:html' as html;
 import 'dart:js' as js;
 import 'package:flutter/foundation.dart';

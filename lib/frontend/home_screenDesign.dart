@@ -1,4 +1,4 @@
-// 📄 lib/home/frontend/home_screenDesign.dart
+// ignore_for_file: unused_field, file_names, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,9 +14,9 @@ class HomeScreenDesign extends StatefulWidget {
 
 class _HomeScreenDesignState extends State<HomeScreenDesign> {
   bool _menuOpen = false;
-  bool _obscureCurrent = true; 
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
+  final bool _obscureCurrent = true; 
+  final bool _obscureNew = true;
+  final bool _obscureConfirm = true;
   bool _isAdmin = false; // <-- שדה חדש
  @override
 void initState() {
@@ -210,7 +210,6 @@ title: Text(
                Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const UsersScreen()),
     );
-              // TODO: ניווט למסך ניהול משתמשים
             },
           ),
     //      const Divider(),
@@ -322,15 +321,15 @@ Future<void> showUserProfileDialog(BuildContext context) async {
   final docSnap = await docRef.get();
   final userData = docSnap.data();
 
-  final _nameController = TextEditingController(text: userData?['firstName'] ?? '');
+  final nameController = TextEditingController(text: userData?['firstName'] ?? '');
   //final _emailController = TextEditingController(text: userData?['email'] ?? '');
-  final _currentPassController = TextEditingController();
-  final _newPassController = TextEditingController();
-  final _confirmPassController = TextEditingController();
+  final currentPassController = TextEditingController();
+  final newPassController = TextEditingController();
+  final confirmPassController = TextEditingController();
 
-  bool _obscureCurrent = true;
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
+  bool obscureCurrent = true;
+  bool obscureNew = true;
+  bool obscureConfirm = true;
 
   showDialog(
     context: context,
@@ -345,7 +344,7 @@ Future<void> showUserProfileDialog(BuildContext context) async {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _buildTextField(_nameController, 'Name'),
+                  _buildTextField(nameController, 'Name'),
                 //  _buildTextField(_emailController, 'Email'),
                   const SizedBox(height: 10),
                   const Align(
@@ -354,22 +353,22 @@ Future<void> showUserProfileDialog(BuildContext context) async {
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                   _buildPasswordField(
-                    controller: _currentPassController,
+                    controller: currentPassController,
                     label: 'Current Password',
-                    obscure: _obscureCurrent,
-                    toggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                    obscure: obscureCurrent,
+                    toggle: () => setState(() => obscureCurrent = !obscureCurrent),
                   ),
                   _buildPasswordField(
-                    controller: _newPassController,
+                    controller: newPassController,
                     label: 'New Password',
-                    obscure: _obscureNew,
-                    toggle: () => setState(() => _obscureNew = !_obscureNew),
+                    obscure: obscureNew,
+                    toggle: () => setState(() => obscureNew = !obscureNew),
                   ),
                   _buildPasswordField(
-                    controller: _confirmPassController,
+                    controller: confirmPassController,
                     label: 'Confirm Password',
-                    obscure: _obscureConfirm,
-                    toggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                    obscure: obscureConfirm,
+                    toggle: () => setState(() => obscureConfirm = !obscureConfirm),
                   ),
                 ],
               ),
@@ -378,11 +377,11 @@ Future<void> showUserProfileDialog(BuildContext context) async {
           actions: [
             ElevatedButton(
              onPressed: () async {
-  final name = _nameController.text.trim();
+  final name = nameController.text.trim();
   //final email = _emailController.text.trim();
-  final currentPassword = _currentPassController.text.trim();
-  final newPassword = _newPassController.text.trim();
-  final confirmPassword = _confirmPassController.text.trim();
+  final currentPassword = currentPassController.text.trim();
+  final newPassword = newPassController.text.trim();
+  final confirmPassword = confirmPassController.text.trim();
 
   if (name.isEmpty) {
     showError(context, ' The name field cannot be empty.');

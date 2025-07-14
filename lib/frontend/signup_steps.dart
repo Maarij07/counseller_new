@@ -43,7 +43,7 @@ class SignUpSteps extends StatelessWidget {
   final TextEditingController passwordController;
   final TextEditingController confirmPasswordController;
 
-  const SignUpSteps({
+  const SignUpSteps({super.key, 
     required this.step,
     required this.firstNameController,
     required this.lastNameController,

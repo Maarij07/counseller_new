@@ -1,5 +1,7 @@
 // 📄 קובץ: lib/home/screens/audio_handler.dart
 
+// ignore_for_file: avoid_web_libraries_in_flutter
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:html' as html;
@@ -9,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'dart:async';
-import 'package:record/record.dart'; // ודא שאתה משתמש בגרסה העדכנית ביותר
+// ודא שאתה משתמש בגרסה העדכנית ביותר
 
 class AudioHandler {
 final AudioRecorder _recorder = AudioRecorder();
@@ -43,7 +45,7 @@ await _recorder.start(
         completer.complete(html.Blob(_audioChunks));
       });
       _mediaRecorder!.stop();
-_stream?.getTracks().forEach((track) => track.stop());  // ← תיקון כאן!
+      _stream?.getTracks().forEach((track) => track.stop());  // ← תיקון כאן!
 
       final blob = await completer.future;
       final reader = html.FileReader();

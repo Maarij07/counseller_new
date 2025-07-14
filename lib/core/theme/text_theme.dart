@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:phychological_counselor/core/theme/text_style.dart';
 import 'app_colors.dart';

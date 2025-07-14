@@ -1,38 +1,41 @@
 // lib/home/screens/home_screen.dart
 
+// ignore_for_file: unused_field, avoid_print, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:phychological_counselor/data/services/gpt_service.dart';
-import 'dart:html' as html;
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:phychological_counselor/home/screens/audio_handler.dart';
+import 'package:phychological_counselor/home/screens/audio_handler_stub.dart'
+    if (dart.library.html) 'package:phychological_counselor/home/screens/audio_handler_web.dart'
+    if (dart.library.io) 'package:phychological_counselor/home/screens/audio_handler_mobile.dart';
 import 'package:phychological_counselor/home/screens/firestore_service.dart';
 import 'package:phychological_counselor/home/screens/speech_service.dart';
-import 'package:phychological_counselor/home/screens/avatar_lipsync_service.dart';
+import 'package:phychological_counselor/home/screens/avatar_lipsync_service_stub.dart'
+    if (dart.library.html) 'package:phychological_counselor/home/screens/avatar_lipsync_service.dart';
 import 'package:phychological_counselor/home/screens/mobile_avatar_service.dart';
 import 'package:phychological_counselor/home/screens/mobile_avatar_widget.dart';
-import 'package:phychological_counselor/home/screens/browser_speech_service.dart';
+import 'package:phychological_counselor/home/screens/browser_speech_service_stub.dart'
+    if (dart.library.html) 'package:phychological_counselor/home/screens/browser_speech_service.dart'
+    if (dart.library.io) 'package:phychological_counselor/home/screens/browser_speech_service_mobile.dart';
 import 'package:flutter/foundation.dart'; 
 import 'package:phychological_counselor/frontend/home_screenDesign2.dart';
 import 'package:phychological_counselor/frontend/chat_side_panel.dart';
 
 import '../../ai_chat/provider/chat_provider.dart';
 import '../../ai_chat/widgets/build_message.dart';
-import '../../ai_chat/widgets/chat_text_field.dart';
-import '../../ai_chat/widgets/send_button.dart';
-import '../../ai_chat/widgets/chat_history_sidebar.dart';
 import 'package:phychological_counselor/frontend/home_screenDesign.dart';
 
 import 'tts_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -55,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _canUseVoiceWithAvatar = false;
   bool _showTypingIndicator = false;
   
-  final _audioHandler = AudioHandler();
+  late AudioHandler _audioHandler;
   final _ttsService = TtsService();
   final _avatarLipSync = AvatarLipSyncService();
   final _mobileAvatarService = MobileAvatarService();
@@ -106,6 +109,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeServices() async {
     try {
+      // Initialize audio handler
+      _audioHandler = AudioHandler();
+      
       if (kIsWeb) {
         // Web platform - use iframe avatar
         await _avatarLipSync.initialize();
@@ -311,13 +317,15 @@ class _HomeScreenState extends State<HomeScreen> {
   // Normal voice recording
   Future<void> _handleNormalVoiceRecording() async {
     setState(() => _isRecording = !_isRecording);
+    
+
     if (_isRecording) {
       await _audioHandler.startRecording();
     } else {
       final transcript = await _audioHandler.stopAndTranscribe(kIsWeb);
       setState(() => _isRecording = false);
 
-      if (transcript != null && transcript.trim().isNotEmpty) {
+      if (transcript.trim().isNotEmpty) {
         // Show transcribed text immediately
         final chatProvider = Provider.of<ChatProvider>(context, listen: false);
         chatProvider.addMessage("user", transcript);
@@ -453,8 +461,8 @@ class _HomeScreenState extends State<HomeScreen> {
         chatProvider.messages.add(msg);
       }
       
-      // Manually trigger UI update
-      chatProvider.notifyListeners();
+      // UI will update automatically via ChangeNotifierProvider.
+      // Removed direct call to notifyListeners() to avoid error.
     }
   }
 
@@ -560,26 +568,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _loadChatFromHistory(String sessionId) async {
-    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    chatProvider.clearMessages();
-
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_userId!)
-        .collection('chat_sessions')
-        .doc(sessionId)
-        .collection('messages')
-        .orderBy('timestamp')
-        .get();
-
-    for (var doc in snapshot.docs) {
-      chatProvider.addMessage(doc['sender'], doc['text']);
-    }
-
-    setState(() => _currentSessionId = sessionId);
-    _scrollToBottom();
-  }
 
   // AVATAR SECTION (supports both web iframe and mobile custom widget)
   Widget _buildAvatarSection() {
@@ -950,19 +938,4 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _showProfileDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("👤 My Profile"),
-        content: const Text("כאן יופיע פרופיל המשתמש..."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text("סגור"),
-          ),
-        ],
-      ),
-    );
-  }
 }

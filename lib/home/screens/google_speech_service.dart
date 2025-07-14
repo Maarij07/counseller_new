@@ -1,5 +1,7 @@
 // lib/home/screens/google_speech_service.dart
 
+// ignore_for_file: avoid_print, avoid_web_libraries_in_flutter
+
 import 'dart:html' as html;
 import 'dart:js' as js;
 import 'dart:convert';
@@ -402,22 +404,30 @@ class GoogleSpeechService {
             
             print("✅ Transcript: '$transcript' (confidence: $confidence)");
             
-            return transcript?.toString()?.trim();
+            return transcript?.toString().trim();
           } else {
-            print("⚠️ No alternatives in result: ${json.encode(result)}");
+            if (kDebugMode) {
+              print("⚠️ No alternatives in result: ${json.encode(result)}");
+            }
           }
         } else {
-          print("⚠️ No results in API response. Full response: ${response.body}");
+          if (kDebugMode) {
+            print("⚠️ No results in API response. Full response: ${response.body}");
+          }
           
           // Check if it's a silence/no speech response
           final data = json.decode(response.body);
           if (data['totalBilledTime'] == "0s") {
-            print("💭 Likely reason: Audio was too quiet, too short, or no speech detected");
+            if (kDebugMode) {
+              print("💭 Likely reason: Audio was too quiet, too short, or no speech detected");
+            }
             return ""; // Return empty string to indicate no speech detected
           }
         }
       } else {
-        print("❌ Google API Error: ${response.statusCode} - ${response.body}");
+        if (kDebugMode) {
+          print("❌ Google API Error: ${response.statusCode} - ${response.body}");
+        }
       }
       
       return null;

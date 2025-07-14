@@ -1,17 +1,12 @@
-// // lib/home/screens/audio_handler_stub.dart
+// lib/home/screens/audio_handler_stub.dart
 
-/// AudioHandler “stub” לשאר הפלטפורמות שלא Web ולא Mobile.
-/// כל קריאה ל-startRecording() או ל-stopAndTranscribe() כאן תזרוק UnimplementedError.
+/// Stub implementation for unsupported platforms
 class AudioHandler {
   Future<void> startRecording() async {
-    throw UnimplementedError(
-      'AudioHandler.startRecording() אינו מיושם בפלטפורמה זו.',
-    );
+    throw UnsupportedError('Audio recording not supported on this platform');
   }
 
   Future<String> stopAndTranscribe(bool isWeb) async {
-    throw UnimplementedError(
-      'AudioHandler.stopAndTranscribe() אינו מיושם בפלטפורמה זו.',
-    );
+    throw UnsupportedError('Audio recording not supported on this platform');
   }
 }

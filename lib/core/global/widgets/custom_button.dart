@@ -10,7 +10,7 @@ class CustomButton extends StatelessWidget {
   final Color svgColor;
   final Color textColor;
 
-  const CustomButton({
+  const CustomButton({super.key, 
     required this.icon,
     required this.text,
     required this.onPressed,

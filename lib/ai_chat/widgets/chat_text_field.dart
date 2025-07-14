@@ -7,10 +7,10 @@ class ChatTextField extends StatelessWidget {
   final Function(String) onSubmitted;
 
   const ChatTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.onSubmitted,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

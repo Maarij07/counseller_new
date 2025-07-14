@@ -178,6 +178,8 @@ Future<void> sendPasswordResetEmail({
   const templateId = 'template_ud0zjcp';
   const publicKey = 'VBWBT...'; // המפתח הפומבי שלך מ־EmailJS
   const userId = 'C6-8XJwSYTqFhyQUb';
+  //  updating it adding email variable
+  const email = "";
 
   final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
 
@@ -201,6 +203,8 @@ Future<void> sendPasswordResetEmail({
 
   if (response.statusCode == 200) {
     print('✅ Email sent!');
+    print(publicKey);
+
   } else {
     print('❌ Failed to send email: ${response.body}');
     print('🔴 Error response: ${response.statusCode} - ${response.body}');
@@ -211,6 +215,8 @@ Future<void> sendPasswordResetEmail({
 // 🔵 2. ואז בתוך ה־Widget שלך (כפתור לדוגמה)
 class ForgotPasswordPage extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
+
+  ForgotPasswordPage({super.key});
 
   @override
   Widget build(BuildContext context) {

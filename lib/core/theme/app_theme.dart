@@ -44,16 +44,13 @@ class AppTheme {
         primary: AppColors.primary,
         secondary: AppColors.secondary,
         surface: AppColors.surface,
-        background: AppColors.background,
         error: AppColors.error,
         onPrimary:
             AppColors.surface, // Ensures text/icons on primary are visible
         onSecondary:
             AppColors.background, // Ensures text/icons on secondary are visible
         onSurface:
-            AppColors.secondary, // Ensures text/icons on surface are visible
-        onBackground:
-            AppColors.surface, // Ensures text/icons on background are visible
+            AppColors.secondary, // Ensures text/icons on background are visible
         brightness: Brightness.dark,
       ),
     );

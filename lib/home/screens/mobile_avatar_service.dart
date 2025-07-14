@@ -1,5 +1,7 @@
 // lib/home/screens/mobile_avatar_service.dart
 
+// ignore_for_file: avoid_print
+
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';

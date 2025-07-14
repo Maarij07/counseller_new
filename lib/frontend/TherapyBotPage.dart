@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 import 'package:phychological_counselor/frontend/SignUpPage.dart'; // היבוא של SignUpPage
 import 'package:phychological_counselor/frontend/home_page.dart';
@@ -5,6 +7,8 @@ import 'package:phychological_counselor/main/navigation/routes/name.dart';
 
 
 class TherapyBotPage extends StatelessWidget {
+  const TherapyBotPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

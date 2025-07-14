@@ -9,7 +9,8 @@ Future<String?> getGPTResponse(String userMessage, String userId) async {
     return null;
   }
 
-  final String _systemPrompt = '''
+// updating it
+  final String systemPrompt0 = '''
 Hello {NAME},  
 I'm Hewar, I'm Hewar, I'm Hewar, an AI-based chatbot designed to help you deeply understand and process negative events and situations in your daily life.  
 We’ll explore what happened, why it triggered certain emotions, and uncover patterns in your thinking, to help you view things from new perspectives and feel differently.
@@ -51,8 +52,10 @@ Let’s reflect with a few more questions:
 • Checking emotional or cognitive change  
 ''';
 
-
+  // Use systemPrompt0 as the system prompt
+  final String systemPrompt = systemPrompt0;
   final response = await http.post(
+    
     Uri.parse('https://api.openai.com/v1/chat/completions'),
     headers: {
       'Authorization': 'Bearer $apiKey',

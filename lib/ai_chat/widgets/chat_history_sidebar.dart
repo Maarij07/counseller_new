@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 class ChatHistorySidebar extends StatelessWidget {
   final Function(String sessionId) onSessionSelected;
 
-  const ChatHistorySidebar({Key? key, required this.onSessionSelected}) : super(key: key);
+  const ChatHistorySidebar({super.key, required this.onSessionSelected});
 
   Future<List<Map<String, dynamic>>> _fetchChatSessions(String userId) async {
     final snapshot = await FirebaseFirestore.instance

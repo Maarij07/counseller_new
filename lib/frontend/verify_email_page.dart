@@ -1,9 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class VerifyEmailPage extends StatefulWidget {
-  const VerifyEmailPage({Key? key}) : super(key: key);
+  const VerifyEmailPage({super.key});
   @override
   _VerifyEmailPageState createState() => _VerifyEmailPageState();
 }
@@ -11,7 +13,7 @@ class VerifyEmailPage extends StatefulWidget {
 class _VerifyEmailPageState extends State<VerifyEmailPage> {
   bool _isSending     = false;
   bool _isChecking    = false;
-  bool _emailVerified = false;
+  final bool _emailVerified = false;
 
   @override
   void initState() {
@@ -45,18 +47,6 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     setState(() => _isChecking = false);
   }
 
-  Future<void> _saveUserData(User user) async {
-    final args = ModalRoute.of(context)!.settings.arguments
-        as Map<String, dynamic>;
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-      'firstName': args['firstName'],
-      'lastName':  args['lastName'],
-      'email':     args['email'],
-      'age':       args['age'],
-      'gender':    args['gender'],
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-  }
 
   Future<void> _resendVerification() async {
     setState(() => _isSending = true);

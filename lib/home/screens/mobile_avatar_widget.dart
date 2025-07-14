@@ -1,5 +1,7 @@
 // lib/home/screens/mobile_avatar_widget.dart
 
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
@@ -10,10 +12,10 @@ class MobileAvatarWidget extends StatefulWidget {
   final double height;
 
   const MobileAvatarWidget({
-    Key? key,
+    super.key,
     this.width = 300,
     this.height = 400,
-  }) : super(key: key);
+  });
 
   @override
   State<MobileAvatarWidget> createState() => _MobileAvatarWidgetState();

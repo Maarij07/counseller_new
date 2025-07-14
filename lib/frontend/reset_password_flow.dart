@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
@@ -5,6 +7,8 @@ import 'dart:convert';
 
 
 class ResetPasswordFlow extends StatefulWidget {
+  const ResetPasswordFlow({super.key});
+
   @override
   _ResetPasswordFlowState createState() => _ResetPasswordFlowState();
 }

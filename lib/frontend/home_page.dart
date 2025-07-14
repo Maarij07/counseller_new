@@ -341,6 +341,8 @@
 //     );
 //   }
 
+// ignore_for_file: use_build_context_synchronously
+
 // }
  import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -352,6 +354,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:phychological_counselor/frontend/reset_password_flow.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -383,86 +387,6 @@ class _HomePageState extends State<HomePage> {
     return;
   }
     print("Trying login with email: $email");
-try {
-  final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-    email: email,
-    password: password,
-  );
-
-  print("✅ Logged in with FirebaseAuth, UID: ${credential.user?.uid}");
-  Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (route) => false);
-} on FirebaseAuthException catch (e) {
-  print("❌ FirebaseAuth Login Error: $e");
-
-  // 🔄 ננסה לבדוק אם זה משתמש ADMIN מתוך Firestore
-  bool loggedIn = await tryLoginFromFirestoreIfNotInAuth(email, password);
-  if (!loggedIn) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text("Login Failed"),
-        content: Text("Email or password is incorrect"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("OK")),
-        ],
-      ),
-    );
-  }
-}
-
-
- on FirebaseAuthException catch (e) {
-    print("❌ FirebaseAuth Login Error: $e");
-
-    showDialog(
-  context: context,
-    barrierColor: Colors.black.withOpacity(0.2), // ← רקע שקוף בהיר
-
-  builder: (_) => Center(
-    child: SizedBox(
-      width: 300, // ← גודל הקופסה
-      child: AlertDialog(
-        backgroundColor: Colors.grey[200], // ✅ צבע הרקע של הקופסה עצמה
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16), // ← פינות מעוגלות
-        ),
-        title: Text(
-          'Login Failed',
-          style: TextStyle(color: Colors.black87, fontSize: 18),
-        ),
-        content: Text(
-          'Error: ${e.message}',
-          style: TextStyle(color: Colors.black, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'OK',
-style: TextStyle(
-      color: Colors.indigo, // ✅ צבע טקסט סגול
-      fontWeight: FontWeight.bold,
-      fontSize: 16,
-    ),            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-);
-
-  }catch (e) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: Text('Login Failed'),
-          content: Text('Error: $e'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('OK')),
-          ],
-        ),
-      );
-  }
 }
 Future<bool> tryLoginFromFirestoreIfNotInAuth(String email, String password) async {
   final firestore = FirebaseFirestore.instance;
@@ -594,7 +518,7 @@ Future<void> manualLoginTest() async {
                 MouseRegion(
                   onEnter: (event) => {},
                   onExit: (event) => {},
-                  child: Container(
+                  child: SizedBox(
                     width: 250,
                       height: 45, // ✅ חדש: גובה קטן יותר
                     child: TextField(
@@ -619,7 +543,7 @@ Future<void> manualLoginTest() async {
               MouseRegion(
   onEnter: (event) => {},
   onExit: (event) => {},
-  child: Container(
+  child: SizedBox(
     width: 250,
     height: 45,
     child: TextField(

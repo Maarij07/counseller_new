@@ -6,7 +6,7 @@ import 'mobile_avatar_service.dart';
 import 'mobile_avatar_widget.dart';
 
 class MobileAvatarDemo extends StatefulWidget {
-  const MobileAvatarDemo({Key? key}) : super(key: key);
+  const MobileAvatarDemo({super.key});
 
   @override
   State<MobileAvatarDemo> createState() => _MobileAvatarDemoState();
