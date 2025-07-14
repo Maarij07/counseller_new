@@ -1,5 +1,7 @@
 // lib/home/screens/browser_speech_service_mobile.dart
 
+// ignore_for_file: prefer_final_fields, deprecated_member_use
+
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 /// Mobile implementation of browser speech service using native speech recognition
