@@ -37,6 +37,7 @@
 // }
 // lib/main.dart
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -54,8 +55,12 @@ Future<void> main() async {
   await dotenv.load(fileName: ".env");
 
   // פעל אתחול Firebase (יחד עם בדיקת ה-duplicate שהוספנו)
-  await FirebaseInitializer.initialize();
+  // await FirebaseInitializer.initialize();
 
+// Updating this
+ if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp();
+  }
   // אתחול משתני Global (אם יש)
   await Global.init();
 
