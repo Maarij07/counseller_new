@@ -368,7 +368,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _login() async {
   FocusScope.of(context).unfocus(); // סגור מקלדת
 
-   final email = _emailController.text.trim();
+  final email = _emailController.text.trim();
   final password = _passwordController.text.trim();
   print("📧 Email: '$email'");
   print("🔑 Password: '$password'");
@@ -387,6 +387,9 @@ class _HomePageState extends State<HomePage> {
     return;
   }
     print("Trying login with email: $email");
+    // Updating this
+   manualLoginTest();
+   
 }
 Future<bool> tryLoginFromFirestoreIfNotInAuth(String email, String password) async {
   final firestore = FirebaseFirestore.instance;

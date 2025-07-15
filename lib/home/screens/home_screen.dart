@@ -72,7 +72,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _lastInputWasVoice = false;
 
   // Avatar URL - UPDATE THIS TO YOUR ACTUAL ASSET PATH
-  static const String _avatarUrl = 'assets/avatars/avatar.glb';
+  // updating this
+  static const String _avatarUrl = 'assets/avatars/avatarOriginal.glb';
+  // static const String _avatarUrl = 'assets/avatars/avatar.glb';
 
   @override
   void initState() {

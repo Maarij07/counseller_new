@@ -87,6 +87,8 @@ class MobileAvatarService extends ChangeNotifier {
   }
 
   Future<bool> loadAvatar(String avatarPath) async {
+    // Updating this
+    print("Mobile Avatar : $avatarPath");
     if (!_isInitialized) {
       print("❌ Service not initialized");
       return false;

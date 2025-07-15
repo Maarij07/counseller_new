@@ -23,8 +23,10 @@ class _MobileAvatarDemoState extends State<MobileAvatarDemo> {
   }
 
   Future<void> _initializeAvatar() async {
+    print("Calling");
     await _avatarService.initialize();
-    await _avatarService.loadAvatar('assets/avatars/avatar.glb');
+    await _avatarService.loadAvatar('assets/avatars/avatarOriginal.glb');
+    // await _avatarService.loadAvatar('assets/avatars/avatar.glb');
   }
 
   @override
