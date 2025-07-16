@@ -595,7 +595,8 @@ class _HomeScreenState extends State<HomeScreen> {
               value: _mobileAvatarService,
               child: const Center(
                 child: MobileAvatarWidget(
-                  width: 250,
+                  width: double.infinity,
+                  // width: 250,
                   height: 250,
                 ),
               ),

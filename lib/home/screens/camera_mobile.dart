@@ -54,7 +54,7 @@ class _CameraBoxState extends State<CameraBox> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done && _controller != null) {
           return Container(
-            width: 120,
+            width: 100,
             height: 160,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.white, width: 2),
