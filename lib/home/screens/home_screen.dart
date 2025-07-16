@@ -603,27 +603,28 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             
           // Status overlay for avatar conversation
-          Positioned(
-            top: 8,
-            left: 8,
-            right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Text(
-                _getAvatarStatusText(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
+          // Status of avatar text Ai is speaking
+          // Positioned(
+          //   top: 8,
+          //   left: 8,
+          //   right: 8,
+          //   child: Container(
+          //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          //     decoration: BoxDecoration(
+          //       color: Colors.black87,
+          //       borderRadius: BorderRadius.circular(15),
+          //     ),
+          //     child: Text(
+          //       _getAvatarStatusText(),
+          //       style: const TextStyle(
+          //         color: Colors.white,
+          //         fontSize: 12,
+          //         fontWeight: FontWeight.w500,
+          //       ),
+          //       textAlign: TextAlign.center,
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );

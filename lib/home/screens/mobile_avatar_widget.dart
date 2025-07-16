@@ -3,6 +3,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter_3d_controller/flutter_3d_controller.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:phychological_counselor/home/screens/camera_mobile.dart';
 import 'package:provider/provider.dart';
@@ -30,10 +31,28 @@ class _MobileAvatarWidgetState extends State<MobileAvatarWidget>
   late Animation<double> _breathingAnimation;
   late Animation<double> _idleAnimation;
 
+  Flutter3DController controller = Flutter3DController();
+  Future<void> init3DController() async {
+    //It will return available textures list of 3D model.
+await controller.getAvailableTextures();
+
+//It will set your desired camera target.
+controller.setCameraTarget(0.3, 0.2, 0.4);
+
+//It will reset the camera target to default.
+controller.resetCameraTarget();
+
+//It will set your desired camera orbit.
+controller.setCameraOrbit(20, 20, 5);
+
+//It will reset the camera orbit to default.
+controller.resetCameraOrbit();
+  }
+
   @override
   void initState() {
     super.initState();
-    
+    init3DController() ;
     // Breathing animation
     _breathingController = AnimationController(
       duration: const Duration(seconds: 4),
@@ -99,31 +118,92 @@ class _MobileAvatarWidgetState extends State<MobileAvatarWidget>
                   ),
                 ],
               ),
-              child: Stack(
-                children: [
-                  // Background and lighting effects
-                  _buildBackgroundEffects(),
-                  // Main avatar
-                  Center(
-                    child: AnimatedBuilder(
-                      animation: Listenable.merge([_breathingAnimation, _idleAnimation]),
-                      builder: (context, child) {
-                        return CustomPaint(
-                          size: Size(widget.width, widget.height),
-                          painter: AvatarPainter(
-                            avatarService: avatarService,
-                            breathingValue: _breathingAnimation.value,
-                            idleValue: _idleAnimation.value,
-                          ),
-                        );
-                      },
+              child: 
+                  //The 3D viewer widget for glb and gltf format
+                  Stack(
+                    children: [
+                      _buildBackgroundEffects(),
+                    ModelViewer(
+                      src: 'assets/avatars/avatarOriginal.glb',
+                      autoPlay: true,
+                      cameraControls: true,
+                      disableZoom: true,
+                      iosSrc: 'assets/avatars/avatarOriginal.glb',
+                      alt: "A 3D avatar",
+                      ar: true,
+                      arModes: [
+
+                      ],
+                        
                     ),
-                  ),
-              
-                  // Status indicator
                   _buildStatusIndicator(avatarService),
-                ],
-              ),
+                    ],
+                  ),
+            
+            // 3D Controller
+                  // Stack(
+                  //   children: [
+                  //     _buildBackgroundEffects(),
+                  //     Flutter3DViewer(
+                  //         //If you pass 'true' the flutter_3d_controller will add gesture interceptor layer
+                  //         //to prevent gesture recognizers from malfunctioning on iOS and some Android devices.
+                  //         //the default value is true
+                  //         activeGestureInterceptor: true,
+                  //         //If you don't pass progressBarColor, the color of defaultLoadingProgressBar will be grey.
+                  //         //You can set your custom color or use [Colors.transparent] for hiding loadingProgressBar.
+                  //         progressBarColor: Colors.orange,
+                  //         //You can disable viewer touch response by setting 'enableTouch' to 'false'
+                  //         enableTouch: true,
+                  //         //This callBack will return the loading progress value between 0 and 1.0
+                  //         onProgress: (double progressValue) {
+                  //           debugPrint('model loading progress : $progressValue');
+                              
+                  //         },
+                  //         //This callBack will call after model loaded successfully and will return model address
+                  //         onLoad: (String modelAddress) {
+                  //           debugPrint('model loaded : $modelAddress');
+                  //           controller.playAnimation(loopCount: 0);
+                  //         },
+                  //         //this callBack will call when model failed to load and will return failure error
+                  //         onError: (String error) {
+                  //           debugPrint('model failed to load : $error');
+                  //         },
+                  //         //You can have full control of 3d model animations, textures and camera
+                  //         controller: controller, //3D model with different animations
+                  //         src: 'assets/avatars/avatarOriginal.glb', //3D model with different animations
+                  //         //src: 'assets/sheen_chair.glb', //3D model with different textures
+                  //         //src: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb', // 3D model from URL
+                  //     ),
+
+                  // _buildStatusIndicator(avatarService),
+                  //   ],
+                  // ),
+            
+              // Stack(
+              //   children: [
+                  // Background and lighting effects
+                  // _buildBackgroundEffects(),]
+                  // Center(
+                  //   child: AnimatedBuilder(
+                  //     animation: Listenable.merge([_breathingAnimation, _idleAnimation]),
+                  //     builder: (context, child) {
+                  //       return CustomPaint(
+                  //         size: Size(widget.width, widget.height),
+                  //         painter: AvatarPainter(
+                  //           avatarService: avatarService,
+                  //           breathingValue: _breathingAnimation.value,
+                  //           idleValue: _idleAnimation.value,
+                  //         ),
+                  //       );
+                  //     },
+                  //   ),
+                  // ),
+                  // // Status indicator
+                  // _buildStatusIndicator(avatarService),
+                  // ],
+              // ),
+            // ),
+
             ),
             Positioned(
                 bottom: 100,
