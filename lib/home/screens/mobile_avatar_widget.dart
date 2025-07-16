@@ -3,6 +3,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:phychological_counselor/home/screens/camera_mobile.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
@@ -622,6 +623,8 @@ class AvatarPainter extends CustomPainter {
 // // ignore_for_file: deprecated_member_use
 
 // import 'package:flutter/material.dart';
+// import 'package:model_viewer_plus/model_viewer_plus.dart';
+// import 'package:phychological_counselor/home/screens/camera_mobile.dart';
 // import 'package:provider/provider.dart';
 // import 'dart:math';
 // import 'mobile_avatar_service.dart';
@@ -692,53 +695,64 @@ class AvatarPainter extends CustomPainter {
 //   Widget build(BuildContext context) {
 //     return Consumer<MobileAvatarService>(
 //       builder: (context, avatarService, child) {
-//         return Container(
-//           width: widget.width,
-//           height: widget.height,
-//           decoration: BoxDecoration(
-//             gradient: LinearGradient(
-//               begin: Alignment.topCenter,
-//               end: Alignment.bottomCenter,
-//               colors: [
-//                 Colors.blue.shade100,
-//                 Colors.purple.shade100,
-//               ],
-//             ),
-//             borderRadius: BorderRadius.circular(20),
-//             boxShadow: [
-//               BoxShadow(
-//                 color: Colors.black.withOpacity(0.1),
-//                 blurRadius: 10,
-//                 offset: const Offset(0, 5),
-//               ),
-//             ],
-//           ),
-//           child: Stack(
-//             children: [
-//               // Background and lighting effects
-//               _buildBackgroundEffects(),
-              
-//               // Main avatar
-//               Center(
-//                 child: AnimatedBuilder(
-//                   animation: Listenable.merge([_breathingAnimation, _idleAnimation]),
-//                   builder: (context, child) {
-//                     return CustomPaint(
-//                       size: Size(widget.width, widget.height),
-//                       painter: AvatarPainter(
-//                         avatarService: avatarService,
-//                         breathingValue: _breathingAnimation.value,
-//                         idleValue: _idleAnimation.value,
-//                       ),
-//                     );
-//                   },
+//         return Stack(
+//           children: [
+            
+//             Container(
+//               width: widget.width,
+//               height: widget.height,
+//               decoration: BoxDecoration(
+//                 gradient: LinearGradient(
+//                   begin: Alignment.topCenter,
+//                   end: Alignment.bottomCenter,
+//                   colors: [
+//                     Colors.blue.shade100,
+//                     Colors.purple.shade100,
+//                   ],
 //                 ),
+//                 borderRadius: BorderRadius.circular(20),
+//                 boxShadow: [
+//                   BoxShadow(
+//                     color: Colors.black.withOpacity(0.1),
+//                     blurRadius: 10,
+//                     offset: const Offset(0, 5),
+//                   ),
+//                 ],
 //               ),
-
-//               // Status indicator
-//               _buildStatusIndicator(avatarService),
-//             ],
-//           ),
+//               child: Stack(
+//                 children: [
+//                   // Background and lighting effects
+//                   _buildBackgroundEffects(),
+//                   // Main avatar
+//                   Center(
+//                     child: AnimatedBuilder(
+//                       animation: Listenable.merge([_breathingAnimation, _idleAnimation]),
+//                       builder: (context, child) {
+//                         return CustomPaint(
+//                           size: Size(widget.width, widget.height),
+//                           painter: AvatarPainter(
+//                             avatarService: avatarService,
+//                             breathingValue: _breathingAnimation.value,
+//                             idleValue: _idleAnimation.value,
+//                           ),
+//                         );
+//                       },
+//                     ),
+//                   ),
+              
+//                   // Status indicator
+//                   _buildStatusIndicator(avatarService),
+//                 ],
+//               ),
+//             ),
+//             Positioned(
+//                 bottom: 100,
+//                 right: 260,
+//                 left: 0,
+//                 top: 20,
+//                 child: CameraBox(),
+//               ),
+//           ],
 //         );
 //       },
 //     );
