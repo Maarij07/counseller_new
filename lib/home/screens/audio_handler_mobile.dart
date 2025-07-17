@@ -15,10 +15,15 @@ class AudioHandler {
     try {
       if (await _recorder.hasPermission()) {
         final dir = await getApplicationDocumentsDirectory();
-        final path = p.join(dir.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a');
+        final path = p.join(dir.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.wav');
         
         await _recorder.start(
-          const RecordConfig(encoder: AudioEncoder.aacLc),
+          const RecordConfig(
+            encoder: AudioEncoder.wav,
+            sampleRate: 16000,
+            bitRate: 16000,
+            numChannels: 1,
+          ),
           path: path,
         );
         
@@ -53,18 +58,25 @@ class AudioHandler {
 
   Future<String> _transcribeAudio(String base64Audio) async {
     try {
+      print('🎤 Sending audio to Google Speech API, size: ${base64Audio.length} chars');
+      
       final response = await http.post(
         Uri.parse('https://speech.googleapis.com/v1/speech:recognize?key=AIzaSyAYsKJxeVTFAQabU_suLlcJRVZ7Zbvirvg'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "config": {
-            "encoding": "AAC",
-            "sampleRateHertz": 44100,
-            "languageCode": "he-IL"
+            "encoding": "LINEAR16",
+            "sampleRateHertz": 16000,
+            "languageCode": "en-US",
+            "alternativeLanguageCodes": ["he-IL", "ar"],
+            "enableAutomaticPunctuation": true,
+            "model": "latest_long"
           },
           "audio": {"content": base64Audio}
         }),
       );
+      
+      print('🔊 Speech API response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -78,6 +90,18 @@ class AudioHandler {
         }
       } else {
         print('❌ Speech API error: ${response.statusCode}');
+        print('❌ Response body: ${response.body}');
+        print('❌ Request body was: ${jsonEncode({
+          "config": {
+            "encoding": "LINEAR16",
+            "sampleRateHertz": 16000,
+            "languageCode": "en-US",
+            "alternativeLanguageCodes": ["he-IL", "ar"],
+            "enableAutomaticPunctuation": true,
+            "model": "latest_long"
+          },
+          "audio": {"content": "[base64 audio data]"}
+        })}');
         return '';
       }
     } catch (e) {

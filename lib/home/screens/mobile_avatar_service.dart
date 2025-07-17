@@ -159,7 +159,8 @@ class MobileAvatarService extends ChangeNotifier {
     int currentPhonemeIndex = 0;
     int phonemeStartTime = DateTime.now().millisecondsSinceEpoch;
 
-    _lipSyncTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    // Reduced frame rate to 15fps (67ms) for better performance
+    _lipSyncTimer = Timer.periodic(const Duration(milliseconds: 67), (timer) {
       if (!_isAnimating || !_isSpeaking) {
         timer.cancel();
         return;
@@ -181,12 +182,12 @@ class MobileAvatarService extends ChangeNotifier {
           }
         }
 
-        // Apply viseme for current phoneme
+        // Apply viseme for current phoneme with reduced intensity for smoother animation
         final viseme = _lipSyncEngine.getVisemeForPhoneme(currentPhoneme.phoneme);
         final progress = (elapsed / currentPhoneme.duration).clamp(0.0, 1.0);
         final easeInOut = _easeInOutCubic(progress);
 
-        _applyViseme(viseme, easeInOut);
+        _applyViseme(viseme, easeInOut * 0.8); // Reduced intensity for smoother animation
       }
     });
   }
@@ -238,7 +239,7 @@ class MobileAvatarService extends ChangeNotifier {
     final steps = duration ~/ 100;
     int step = 0;
 
-    Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    Timer.periodic(const Duration(milliseconds: 150), (timer) {
       if (step >= steps) {
         timer.cancel();
         _resetHandPosition();
@@ -261,7 +262,7 @@ class MobileAvatarService extends ChangeNotifier {
     final steps = duration ~/ 150;
     int step = 0;
 
-    Timer.periodic(const Duration(milliseconds: 150), (timer) {
+    Timer.periodic(const Duration(milliseconds: 200), (timer) {
       if (step >= steps) {
         timer.cancel();
         _resetHandPosition();
@@ -286,7 +287,7 @@ class MobileAvatarService extends ChangeNotifier {
     final steps = duration ~/ 120;
     int step = 0;
 
-    Timer.periodic(const Duration(milliseconds: 120), (timer) {
+    Timer.periodic(const Duration(milliseconds: 180), (timer) {
       if (step >= steps) {
         timer.cancel();
         _resetHandPosition();
@@ -309,7 +310,7 @@ class MobileAvatarService extends ChangeNotifier {
     final steps = duration ~/ 200;
     int step = 0;
 
-    Timer.periodic(const Duration(milliseconds: 200), (timer) {
+    Timer.periodic(const Duration(milliseconds: 250), (timer) {
       if (step >= steps) {
         timer.cancel();
         _resetHandPosition();
@@ -355,6 +356,7 @@ class MobileAvatarService extends ChangeNotifier {
   }
 
   void _startNaturalAnimations() {
+    // Reduced frame rate to 10fps (100ms) for better performance
     _naturalAnimationTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       _updateNaturalAnimations();
     });
@@ -362,22 +364,35 @@ class MobileAvatarService extends ChangeNotifier {
 
   void _updateNaturalAnimations() {
     final time = DateTime.now().millisecondsSinceEpoch * 0.001;
+    bool shouldNotify = false;
 
-    // Natural blinking
-    if (Random().nextDouble() < 0.02) { // 2% chance per frame
+    // Natural blinking (reduced frequency)
+    if (Random().nextDouble() < 0.01) { // 1% chance per frame
       _triggerBlink();
+      shouldNotify = true;
     }
 
     // Subtle brow movements during speech
     if (_isSpeaking) {
-      _browUp = (sin(time * 0.5) + 1) * 0.5 * 0.2;
-      _cheekPuff = (sin(time * 0.3) + 1) * 0.5 * 0.1;
+      final newBrowUp = (sin(time * 0.5) + 1) * 0.5 * 0.2;
+      final newCheekPuff = (sin(time * 0.3) + 1) * 0.5 * 0.1;
+      
+      if ((_browUp - newBrowUp).abs() > 0.05 || (_cheekPuff - newCheekPuff).abs() > 0.05) {
+        _browUp = newBrowUp;
+        _cheekPuff = newCheekPuff;
+        shouldNotify = true;
+      }
     } else {
-      _browUp = 0.0;
-      _cheekPuff = 0.0;
+      if (_browUp != 0.0 || _cheekPuff != 0.0) {
+        _browUp = 0.0;
+        _cheekPuff = 0.0;
+        shouldNotify = true;
+      }
     }
 
-    notifyListeners();
+    if (shouldNotify) {
+      notifyListeners();
+    }
   }
 
   void _triggerBlink() {

@@ -64,9 +64,17 @@ void initializeThread(String threadId, [List<Map<String, String>>? previousMessa
 }
 
 Future<String?> getGPTResponse(String userMessage, String threadId) async {
-  final apiKey = dotenv.env['API_KEY'];
+  // Try both API_KEY and OPENAI_API_KEY
+  final apiKey = dotenv.env['API_KEY'] ?? dotenv.env['OPENAI_API_KEY'];
   final url = Uri.parse("https://api.openai.com/v1/chat/completions");
 
+  if (apiKey == null || apiKey.isEmpty) {
+    print("❌ API key is null or empty. Available env vars: ${dotenv.env.keys.toList()}");
+    return "API key not configured. Please check your .env file.";
+  }
+
+  print("✅ Using API key: ${apiKey.substring(0, 10)}...");
+  
   if (!conversationMap.containsKey(threadId)) {
     initializeThread(threadId);
   }
@@ -82,7 +90,7 @@ Future<String?> getGPTResponse(String userMessage, String threadId) async {
         'Authorization': 'Bearer $apiKey',
       },
       body: jsonEncode({
-        'model': 'gpt-4',
+        'model': 'gpt-3.5-turbo',
         'messages': conversationMap[threadId],
         'max_tokens': 1500,
         'temperature': 0.3,
@@ -91,8 +99,8 @@ Future<String?> getGPTResponse(String userMessage, String threadId) async {
     );
 
     // ✅ הדפסות לזיהוי תקשורת עם OpenAI
-    print("📱 Response status: \${response.statusCode}");
-    print("📩 Response body: \${response.body}");
+    print("📱 Response status: ${response.statusCode}");
+    print("📩 Response body: ${response.body}");
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
@@ -107,14 +115,28 @@ Future<String?> getGPTResponse(String userMessage, String threadId) async {
 
       return gptResponse;
     } else {
-
-      if (response.statusCode == 403) {
+      print("❌ HTTP Error ${response.statusCode}: ${response.body}");
+      print("📤 Request was: ${jsonEncode({
+        'model': 'gpt-3.5-turbo',
+        'messages': conversationMap[threadId],
+        'max_tokens': 1500,
+        'temperature': 0.3,
+        'top_p': 0.9,
+      })}");
+      
+      if (response.statusCode == 400) {
+        return "Bad request: ${response.body}";
+      } else if (response.statusCode == 401) {
+        return "Unauthorized: Please check your API key.";
+      } else if (response.statusCode == 403) {
         return "Access to the requested model is restricted. Please check your account.";
+      } else if (response.statusCode == 429) {
+        return "Rate limit exceeded. Please try again later.";
       }
-      return "I'm having trouble responding right now.";
+      return "I'm having trouble responding right now. Error: ${response.statusCode}";
     }
   } catch (error) {
-    print("❌ Error: \$error");
+    print("❌ Error: $error");
     return "An error occurred. Please try again.";
   }
 }

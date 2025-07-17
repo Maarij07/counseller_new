@@ -31,7 +31,9 @@ import 'package:phychological_counselor/frontend/chat_side_panel.dart';
 
 // Web-specific imports
 import 'dart:ui' as ui;
-import 'dart:html' as html if (dart.library.html) 'dart:html';
+// Conditional import for dart:html - only available on web
+import 'package:phychological_counselor/home/screens/html_stub.dart' as html
+    if (dart.library.html) 'dart:html';
 
 // Import HtmlElementView only on web
 import 'package:flutter/widgets.dart';
