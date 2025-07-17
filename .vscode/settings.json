@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "/Users/tasneemdabash/Desktop/final/psychological_counselor/linux"
+    "cmake.sourceDirectory": "/Users/tasneemdabash/Desktop/final/psychological_counselor/linux",
+    "cmake.ignoreCMakeListsMissing": true
 }
