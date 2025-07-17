@@ -24,9 +24,17 @@ import 'package:phychological_counselor/home/screens/mobile_avatar_widget.dart';
 import 'package:phychological_counselor/home/screens/browser_speech_service_stub.dart'
     if (dart.library.html) 'package:phychological_counselor/home/screens/browser_speech_service.dart'
     if (dart.library.io) 'package:phychological_counselor/home/screens/browser_speech_service_mobile.dart';
-import 'package:flutter/foundation.dart'; 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:phychological_counselor/frontend/home_screenDesign2.dart';
 import 'package:phychological_counselor/frontend/chat_side_panel.dart';
+
+// Web-specific imports
+import 'dart:ui' as ui;
+import 'dart:html' as html if (dart.library.html) 'dart:html';
+
+// Import HtmlElementView only on web
+import 'package:flutter/widgets.dart';
 
 import '../../ai_chat/provider/chat_provider.dart';
 import '../../ai_chat/widgets/build_message.dart';
@@ -675,9 +683,12 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: _isRecording ? Colors.red.shade50 : Colors.grey[100],
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.grey.shade400),
+              border: Border.all(
+                color: _isRecording ? Colors.red.shade300 : Colors.grey.shade400,
+                width: _isRecording ? 2 : 1,
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -695,11 +706,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     decoration: InputDecoration(
                       hintText: _isRecording 
-                        ? "Listening... or type to send text"
+                        ? "🎤 Recording... Click stop to finish"
                         : "Type your message...",
                       hintStyle: TextStyle(
                         fontSize: 16,
-                        color: _isRecording ? Colors.orange : Colors.grey,
+                        color: _isRecording ? Colors.red : Colors.grey,
+                        fontWeight: _isRecording ? FontWeight.w500 : FontWeight.normal,
                       ),
                       border: InputBorder.none,
                       isDense: true,
@@ -723,8 +735,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Smart microphone button
                 IconButton(
                   icon: Icon(
-                    _isRecording ? Icons.stop : Icons.mic,
-                    size: 20, 
+                    _isRecording ? Icons.stop_circle : Icons.mic,
+                    size: 24, 
                     color: _isRecording 
                       ? Colors.red 
                       : _showAvatar 
@@ -734,13 +746,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: _showAvatar 
                     ? _toggleRecording
                     : _toggleRecording,
-                  tooltip: _showAvatar 
-                    ? (_isAvatarSpeaking 
-                        ? "Tap to interrupt and speak"
-                        : _canUseVoiceWithAvatar 
-                          ? "Record voice for avatar chat" 
-                          : "Wait for avatar...")
-                    : "Record voice message",
+                  tooltip: _isRecording
+                    ? "Tap to stop recording"
+                    : _showAvatar 
+                      ? (_isAvatarSpeaking 
+                          ? "Tap to interrupt and speak"
+                          : _canUseVoiceWithAvatar 
+                            ? "Record voice for avatar chat" 
+                            : "Wait for avatar...")
+                      : "Record voice message",
                 ),
                 
                 // Send button

@@ -37,19 +37,22 @@
 // }
 // lib/main.dart
 
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:html' as html;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import 'main/app.dart';
 import 'main/global.dart';
 import 'frontend/firebase_initializer.dart';
 import 'ai_chat/provider/chat_provider.dart';
 import 'utils/platform_utils.dart';
+import 'firebase_options.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -57,16 +60,12 @@ Future<void> main() async {
   await dotenv.load(fileName: ".env");
 
   // פעל אתחול Firebase (יחד עם בדיקת ה-duplicate שהוספנו)
-  // Updating this
-    if(Platform.isAndroid)
-    {
-      await FirebaseInitializer.initialize();
-    }
-    else{
-    if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp();
-      }
-    }
+  // Web-safe platform check
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
   // אתחול משתני Global (אם יש)
   await Global.init();
 
