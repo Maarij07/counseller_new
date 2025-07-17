@@ -1,6 +1,6 @@
 // lib/home/screens/home_screen.dart
 
-// ignore_for_file: unused_field, avoid_print, use_build_context_synchronously
+// ignore_for_file: unused_field, avoid_print, use_build_context_synchronously, unused_element
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -25,7 +25,6 @@ import 'package:phychological_counselor/home/screens/browser_speech_service_stub
     if (dart.library.html) 'package:phychological_counselor/home/screens/browser_speech_service.dart'
     if (dart.library.io) 'package:phychological_counselor/home/screens/browser_speech_service_mobile.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:phychological_counselor/frontend/home_screenDesign2.dart';
 import 'package:phychological_counselor/frontend/chat_side_panel.dart';
 
@@ -36,7 +35,6 @@ import 'package:phychological_counselor/home/screens/html_stub.dart' as html
     if (dart.library.html) 'dart:html';
 
 // Import HtmlElementView only on web
-import 'package:flutter/widgets.dart';
 
 import '../../ai_chat/provider/chat_provider.dart';
 import '../../ai_chat/widgets/build_message.dart';

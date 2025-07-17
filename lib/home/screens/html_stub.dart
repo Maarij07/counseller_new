@@ -1,7 +1,5 @@
 // lib/home/screens/html_stub.dart
 
-/// Stub implementation for dart:html functionality on non-web platforms
-/// This file provides empty implementations of html classes that are only used on web
 
 // Stub for html.HtmlElement and related classes
 class HtmlElement {

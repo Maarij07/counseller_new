@@ -1,6 +1,6 @@
 // lib/home/screens/mobile_avatar_widget.dart
 
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, unused_field
 
 import 'package:flutter/material.dart';
 import 'package:flutter_3d_controller/flutter_3d_controller.dart';
